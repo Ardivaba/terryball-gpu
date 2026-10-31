@@ -303,7 +303,7 @@ public sealed partial class Lane : Panel
 	/// LeaveGraceSeconds (a late input packet must not end someone's game).
 	/// </summary>
 	bool Present( int slot ) => slot == 0 || Missing[slot] < LeaveGraceSeconds;
-	public const float LeaveGraceSeconds = 3;
+	public const float LeaveGraceSeconds = 10;
 	[State, Size( 16 )] public float[] Missing;   // seconds each slot's input has been disconnected
 
 	/// <summary>
