@@ -27,6 +27,7 @@ public sealed partial class Lane
 	/// <summary>The world displays over display colour d (see Lane.Screen); the lane's own ball hides what is behind it.</summary>
 	Vector3 Displays( in ScreenPixel px, Vector3 d )
 	{
+		if ( Render.InView ) return d;
 		float ly = WorldPosition.y;
 		if ( MathF.Abs( Render.CameraPosition.y - ly ) > 9000 ) return d;
 		Vector2 q;
@@ -135,34 +136,36 @@ public sealed partial class Lane
 		return d;
 	}
 
-	/// <summary>The feed board: the lane from above, the ball and the rack as they are now.</summary>
+	/// <summary>
+	/// The feed camera (LaneMonitorCamera): chasing the ball down the lane, the pin deck while the throw is watched, the
+	/// rack from behind the foul line while the lane waits. Off while the lane is idle.
+	/// </summary>
+	void FeedCamera()
+	{
+		var view = Camera.View( Index );
+		if ( !Playing ) { view.Disable(); return; }
+		float ly = WorldPosition.y;
+		var b = Ball.WorldPosition;
+		var deck = new Vector3( Alley.DeckCenterX, ly, Alley.H );
+		Vector3 at, look;
+		if ( Round == RoundWatching || Round == RoundSettled ) { at = deck + new Vector3( -1500, 420, 520 ); look = deck + new Vector3( 0, 0, 120 ); }
+		else if ( Ball.Mode == Ball.Rolling && b.x > Alley.FoulX - 400 && b.x < Alley.DeckEndX ) { at = b + new Vector3( -950, 0, 280 ); look = b + new Vector3( 900, 0, -40 ); }
+		else { at = new Vector3( Alley.FoulX - 600, ly, Alley.H + 420 ); look = deck; }
+		view.Set( at, Rotation.LookAt( (look - at).Normal ), 55, 10, 60000 );
+	}
+
+	/// <summary>The feed board: this lane's feed camera, live.</summary>
 	Vector3 Feed( Vector2 q, Vector3 d )
 	{
 		d = Over( d, Bg, Fill( Rect( q, 0, 0, 1200, 675, 18 ) ) );
+		float inside = Fill( Rect( q, 14, 14, 1172, 647, 10 ) );
+		if ( Playing && inside > 0 )
+		{
+			var feed = FeedView.Sample( new Vector2( (q.x - 14) / 1172, 1 - (q.y - 14) / 647 ) ).Rgb;
+			d = Over( d, ToDisplay( feed ), inside );
+		}
+		else d = Over( d, Vector3.One * 0.45f, TextCentred( q - new Vector2( 600, 360 ), 40, Label.FeedTitle, 0.3f ) );
 		d = Over( d, Css( 90, 150, 220 ), 0.55f * Outline( Rect( q, 0, 0, 1200, 675, 18 ), 4 ) );
-		// the lane runs left to right: foul line at x 80, the pit at x 1120; across: the bed and gutters
-		float sx = 1040 / (Alley.PitEndX - Alley.FoulX), sy = 150 / Alley.GutterOut;
-		var lane = new Vector2( 600, 360 );
-		float ly = WorldPosition.y;
-		d = Over( d, Css( 200, 150, 90 ), 0.85f * Fill( Rect( q, 80, lane.y - Alley.LaneHalf * sy, (Alley.DeckEndX - Alley.FoulX) * sx, 2 * Alley.LaneHalf * sy, 0 ) ) );
-		d = Over( d, Css( 30, 32, 40 ), Fill( Rect( q, 80 + (Alley.DeckEndX - Alley.FoulX) * sx, lane.y - Alley.GutterOut * sy, (Alley.PitEndX - Alley.DeckEndX) * sx, 2 * Alley.GutterOut * sy, 0 ) ) );
-		d = Over( d, Css( 220, 40, 40 ), Fill( Rect( q, 79, lane.y - Alley.GutterOut * sy, 3, 2 * Alley.GutterOut * sy, 0 ) ) );
-		d = Over( d, Css( 40, 210, 230 ), Fill( Rect( q, 80 + (Alley.ThrowX - Alley.FoulX) * sx - 1, lane.y - Alley.GutterOut * sy, 3, 2 * Alley.GutterOut * sy, 0 ) ) );
-		foreach ( var pin in Scene.All<Pin>() )
-		{
-			if ( pin.Lane.Index != Index || pin.Phase == Pin.Parked ) continue;
-			var p = pin.WorldPosition;
-			var at = new Vector2( 80 + (p.x - Alley.FoulX) * sx, lane.y - (p.y - ly) * sy );
-			bool down = pin.Fallen;
-			d = Over( d, down ? Css( 192, 57, 43 ) : Vector3.One, pin.Alpha * Fill( (q - at).Length - 7 ) );
-		}
-		var b = Ball.WorldPosition;
-		if ( b.x > Alley.FoulX - 400 && b.x < Alley.PitEndX + 200 && MathF.Abs( b.y - ly ) < Alley.PlatformHalf )
-		{
-			var at = new Vector2( 80 + (b.x - Alley.FoulX) * sx, lane.y - (b.y - ly) * sy );
-			d = Over( d, Css( 111, 211, 255 ), Fill( (q - at).Length - Ball.Radius * sy ) );
-		}
-		d = Over( d, Vector3.One * 0.6f, Text( q - new Vector2( 40, 640 ), 26, Label.FeedTitle, 0.3f ) );
 		return d;
 	}
 

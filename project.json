@@ -139,6 +139,36 @@
         "sounds/pins/thud0.wav",
         "sounds/pins/thud1.wav"
       ]
-    }
+    },
+    "views": [
+      {
+        "size": [
+          480,
+          270
+        ],
+        "every": 2
+      },
+      {
+        "size": [
+          480,
+          270
+        ],
+        "every": 2
+      },
+      {
+        "size": [
+          480,
+          270
+        ],
+        "every": 2
+      },
+      {
+        "size": [
+          480,
+          270
+        ],
+        "every": 2
+      }
+    ]
   }
 }

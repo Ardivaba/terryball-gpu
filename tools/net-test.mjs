@@ -14,6 +14,9 @@ const tools = path.join(sbox, 'native', '.toolchain');
 const argv = process.argv.slice(2);
 const arg = (n, d) => { const i = argv.indexOf(n); return i < 0 ? d : argv[i + 1]; };
 const port = arg('--port', '27052'), seconds = +arg('--seconds', '26'), shots = arg('--shots', null);
+// --watch DIR: the host walks up lane 3's ramp to its podium (where the settee's screens are in view) and records from frame 900
+const watch = arg('--watch', null);
+const WALK = '5:16:1;10:68:1;290:68:0;300:87:1;880:87:0;881:16:0;890:65:1;915:65:0';
 const out = path.join(root, 'out');
 fs.mkdirSync(out, { recursive: true });
 
@@ -34,7 +37,8 @@ const run = (name, extra, secs = seconds) => new Promise((resolve) => {
     '--dump-components', path.join(out, `net-${name}.json`), ...extra], { stdio: ['ignore', log, log] });
   p.on('exit', (code) => resolve(code));
 });
-const host = run('host', ['--host', port], seconds + 6);   // the host outlives the client, so the client's dump is from a live session
+if (watch) { fs.rmSync(watch, { recursive: true, force: true }); fs.mkdirSync(watch, { recursive: true }); }
+const host = run('host', ['--host', port, ...(watch ? ['--input', WALK, '--screenshots', watch, '900', '--width', '960', '--height', '540'] : [])], seconds + 6);   // the host outlives the client, so the client's dump is from a live session
 // the client starts once the host is up (its log says so), and a moment more
 for (let i = 0; i < 200 && !fs.readFileSync(path.join(out, 'net-host.log'), 'utf8').includes('hosting on'); i++) await new Promise((r) => setTimeout(r, 100));
 await new Promise((r) => setTimeout(r, 1000));

@@ -18,7 +18,7 @@ public sealed partial class Lane
 	{
 		var d0 = ToDisplay( px.Color.Rgb );
 		var shown = Displays( px, d0 );
-		if ( !ShowsHud )
+		if ( !ShowsHud || Render.InView )
 		{
 			if ( (shown - d0).Length < 1e-6f ) return px.Color;
 			var w = FromDisplay( shown );

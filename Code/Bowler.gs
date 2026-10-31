@@ -206,7 +206,7 @@ public sealed class Bowler : Panel
 	[Draw( After = Stage.Lighting )]
 	Color Lobby( in ScreenPixel px )
 	{
-		if ( !IsLocal || !Alive || Carried ) return px.Color;
+		if ( Render.InView || !IsLocal || !Alive || Carried ) return px.Color;
 		var res = px.Pixel / new Vector2( MathF.Max( px.Uv.x, 1e-5f ), MathF.Max( px.Uv.y, 1e-5f ) );
 		float scale = res.y / 1080;
 		var q = new Vector2( px.Pixel.x, res.y - px.Pixel.y ) / scale;

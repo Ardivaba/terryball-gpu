@@ -43,6 +43,7 @@ public sealed class Ball : GpuComponent
 	[State] public Vector3 HoldAt;           // where the held ball eases to while lining up
 	[State] public Vector3 Wish;             // drive target velocity (horizontal), from the bowler's input
 	[State] public float ThrowMph;           // latched at the throw line
+	[State] public int Hits;                 // the pins this ball has touched (bit n = pin n): the pocket
 	[State] public float CamYaw;  // free drive is relative to the bowler's camera
 	[State] public float CamPitch;
 	// a crane flight (the director's Return): lift, hover, arc to the run-up
@@ -101,6 +102,7 @@ public sealed class Ball : GpuComponent
 
 	void ResetThrow()
 	{
+		Hits = 0;
 		Launched = false;
 		Hook = 0;
 		Step = StepLine;
@@ -108,6 +110,13 @@ public sealed class Ball : GpuComponent
 		Set[0] = 0.5f; Set[1] = 0.5f; Set[2] = 0; Set[3] = 0.5f;
 		ThrowMph = 0;
 		HoldAt = Home;
+	}
+
+	/// <summary>Which pins this ball touches (the pocket: the head pin and the 2 or 3), from the physics step's contacts.</summary>
+	protected override void OnCollisionStart( Collision c )
+	{
+		var pin = c.Other.GameObject.Get<Pin>();
+		if ( pin.IsValid() ) Hits |= 1 << pin.Number;
 	}
 
 	// ---------------------------------------------------------------- the crane (GameDirector's crane jobs)
@@ -504,7 +513,7 @@ public sealed class Ball : GpuComponent
 	[Draw( After = Stage.Lighting )]
 	Color Arrow( in ScreenPixel px )
 	{
-		if ( !IsLocal || !LiningUp || px.Depth > 1e20f ) return px.Color;
+		if ( Render.InView || !IsLocal || !LiningUp || px.Depth > 1e20f ) return px.Color;
 		var p = px.WorldPosition;
 		if ( MathF.Abs( p.z - Alley.H ) > 6 ) return px.Color;
 		var ball = WorldPosition;

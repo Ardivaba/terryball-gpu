@@ -46,18 +46,19 @@ To compile only: `../sbox-public/game/bin/gsharp/gsc.exe Code --out out/gs --sho
 1. A field holds at most 64 scalars, so rolls are packed 4 bits each.
 2. Another entity's array field is not readable; read it through a method (`Ball.SetOf( i )`).
 3. `PhysicsStep.Velocity` cannot be assigned. Write to this body through its `PhysicsStep.Body( i )` handle.
-4. For a compound or hull body, `Rigidbody.SetTransform` places the centre of mass and the principal frame. `Pin.Place` carries the offset.
+4. Since engine 1bddafd74, `Rigidbody.SetTransform` / `SetKinematicTarget` take the GameObject's transform for every body shape (`Pin.Place` passes it straight through).
 5. The scene's box `size` is in internal axis order: s&box (x, y, z) extents are written as (y, z, x).
-6. Two collision-filter commands for one body in the same tick race. Issue one per tick.
+6. Several commands for one body in one tick resolve deterministically: the last one wins.
 7. Physics is not bit-deterministic between runs, so a scripted throw can give 10 or 9 pins.
 8. Git Bash rewrites a lone `/` argument into a path. `throw.mjs` separates throws with `,`.
+9. Pin sounds and the pocket come from `OnCollisionStart` (`Pin`, `Ball.Hits`). Each lane's settee feed board samples its own `Camera.View( Index )` as a `"view:k"` texture (`project.json` `sgpu.views`); the HUD, displays and menu skip themselves while `Render.InView`.
+10. The web export (`native/tools/web/export.mjs --game .`) must write OUTSIDE the project folder, or it copies its own output into itself until the disk is full.
 
 ## Next (phase 3 onward)
 
 - Concourse podium signs and pages (BALL designer, HELP, TELE, SETTINGS).
 - Practice mode and drills.
 - Multiplayer tests (`--host` / `--join`, several bowlers on one lane, leavers).
-- Audio: `OnAudio` roll, pin clacks (`Lane.Touching` is where collision events plug in), the announcer clips.
 - Polish, and the web export.
 
 A scripted walk to lane 3's podium, JOIN and START: `node tools/throw.mjs 0.85 0.5 0.85 0.05 --walk3`.

@@ -4,3 +4,5 @@ bin/
 obj/
 *.log
 out/
+*_c
+*.generated.vtex_c

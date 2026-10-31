@@ -1509,7 +1509,8 @@
           "Ball": {
             "_type": "gameobject",
             "go": "c1b684d4-41b4-4153-af0a-56fcc44fe363"
-          }
+          },
+          "FeedView": "view:0"
         }
       ]
     },
@@ -2564,7 +2565,8 @@
           "Ball": {
             "_type": "gameobject",
             "go": "20a54f73-ecd4-4ba2-aadf-70e258120b6a"
-          }
+          },
+          "FeedView": "view:1"
         }
       ]
     },
@@ -3619,7 +3621,8 @@
           "Ball": {
             "_type": "gameobject",
             "go": "36c41154-b204-44b2-acc0-5610007809ea"
-          }
+          },
+          "FeedView": "view:2"
         }
       ]
     },
@@ -4674,7 +4677,8 @@
           "Ball": {
             "_type": "gameobject",
             "go": "540689c9-8186-437d-aa15-51289108b4c5"
-          }
+          },
+          "FeedView": "view:3"
         }
       ]
     },

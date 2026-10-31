@@ -61,17 +61,8 @@ public sealed class Pin : GpuComponent
 		}
 	}
 
-	/// <summary>
-	/// Puts the pin (its GameObject: the base) at pos/rot. The body's own frame is the hull compound's centre of mass and
-	/// principal axes, so its offset from the GameObject is carried over, as sgMoveEntitySbox does for kinematic moves.
-	/// </summary>
-	void Place( Vector3 pos, Rotation rot )
-	{
-		var inv = WorldRotation.Inverse;
-		var off = inv * (Rigidbody.Position - WorldPosition);
-		var roff = inv * Rigidbody.Rotation;
-		Rigidbody.SetTransform( pos + rot * off, rot * roff );
-	}
+	/// <summary>Puts the pin (its GameObject: the base) at pos/rot.</summary>
+	void Place( Vector3 pos, Rotation rot ) => Rigidbody.SetTransform( pos, rot );
 
 	[Message]
 	public void Sweep()
@@ -102,46 +93,36 @@ public sealed class Pin : GpuComponent
 		Phase = Racking;
 	}
 
-	[Local] Vector3 lastVelocity;
-	[Local] float quietFor;
+	[Local] float lastClack = -100;
 	[Local] public Vector3 Seen;   // where the pin is (diagnostics: --dump-components)
 	[Local] public float SeenUp;
 	[Local] public Vector3 SeenBody;
 	[Local] public Rotation SeenBodyRot;
 
 	/// <summary>
-	/// How hard the pin was just hit (units/s of velocity change this tick, gravity taken out), 0 if not. The source
-	/// counts contact events; this is the one place to swap in collision events.
+	/// Pin sounds (PinImpactAudio) from the physics step's contacts: a thud when the ball hits the pin, a clack for a
+	/// pin hitting a pin, a softer knock off the deck, gutters and walls; louder and brighter the faster they met.
 	/// </summary>
-	float Impact( float dt )
+	protected override void OnCollisionStart( Collision c )
 	{
-		var v = Rigidbody.Velocity;
-		var dv = v - lastVelocity - new Vector3( 0, 0, -386.09f * Alley.U ) * dt;
-		lastVelocity = v;
-		return dv.Length;
-	}
-
-	/// <summary>Pin sounds (PinImpactAudio): a clack for a pin hit, a thud when the ball is the one hitting it.</summary>
-	void Clatter( float dt )
-	{
-		float hit = Impact( dt );
-		quietFor -= dt;
+		float speed = c.Contact.NormalSpeed;
 		// quiet while racking, for PinRackQuietSeconds after the batch goes live, and between hits of one pin
-		if ( Phase != Up || Age < 0.5f || quietFor > 0 || hit < 350 ) return;
-		var ball = Lane.Ball.WorldPosition;
-		bool byBall = (ball - (WorldPosition + WorldRotation.Up * Alley.PinHeight * 0.4f)).Length < Lane.Ball.Radius + 120;
-		float loud = MathX.Clamp( hit / 2600, 0.15f, 1 ) * Ball.Hearing( WorldPosition, 12000 );
+		if ( Phase != Up || Age < 0.5f || Time.Now - lastClack < 0.06f || speed < 300 ) return;
+		var other = c.Other.GameObject;
+		bool byBall = other.Get<Ball>().IsValid();
+		bool byPin = other.Get<Pin>().IsValid();
+		float loud = MathX.Clamp( speed / 3000, 0.12f, 1 ) * Ball.Hearing( WorldPosition, 12000 );
 		if ( loud < 0.02f ) return;
-		int n = (Number * 7 + (int)(Age * 37)) % 6;
-		if ( byBall ) Sound.Play2D( Sounds.Thud + Number % 2, loud * 0.7f, 0.95f + 0.01f * Number );
-		else Sound.Play2D( Sounds.Clack + n, loud * 0.55f, 0.92f + 0.016f * Number );
-		quietFor = 0.08f;
+		float bright = MathX.Clamp( speed / 6000, 0, 0.12f );
+		if ( byBall ) Sound.Play2D( Sounds.Thud + Number % 2, loud * 0.7f, 0.95f + bright );
+		else if ( byPin ) Sound.Play2D( Sounds.Clack + Random.Int( Number * 7919 + Time.Tick, 0, 6 ), loud * 0.55f, 0.92f + 0.016f * Number + bright );
+		else Sound.Play2D( Sounds.Clack + (Number % 6), loud * 0.3f, 0.75f + bright );
+		lastClack = Time.Now;
 	}
 
 	protected override void OnFixedUpdate()
 	{
 		Age += Time.Delta;
-		Clatter( Time.Delta );
 		Seen = WorldPosition;
 		SeenUp = WorldRotation.Up.z;
 		SeenBody = Rigidbody.Position;

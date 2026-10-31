@@ -19,6 +19,7 @@
     <Using Include="Sandbox" />
     <Using Include="Sandbox.Gpu" />
     <Using Include="System" />
+    <Using Include="Sandbox.Gpu.Random" Alias="Random" />
     <Reference Include="GSharp.Api">
       <HintPath>C:\Users\Shadow\Desktop\workspace\sbox-public\game\bin\gsharp\GSharp.Api.dll</HintPath>
     </Reference>

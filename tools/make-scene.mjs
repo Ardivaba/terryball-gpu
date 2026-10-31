@@ -260,7 +260,7 @@ for (let li = 0; li < LANE_COUNT; li++) {
     body: { type: 'dynamic', shape: 'compound', children: pinHulls, mass: 1.23, friction: 0.15, restitution: 0.5, category: laneCat(li), mask: 1 | laneCat(li) } }));
   const rider = ent({ name: `Lane ${li + 1} Rider`, position: at([RUNUP[0], ly, H + R]), rotation: [0, 0, 0, 1], scale: [1.5, 1.5, 1.5],
     mesh: 'citizen', castShadows: true, animation: { clip: 'citizen/idle', speed: 1, loop: true, time: 0 } });
-  director.components = [{ type: 'Lane', Index: li, Ball: ball.id, enabled: true }];
+  director.components = [{ type: 'Lane', Index: li, Ball: ball.id, FeedView: `view:${li}`, enabled: true }];
   ball.components = [{ type: 'Ball', Lane: director.id, Radius: R, enabled: true }];
   pins.forEach((p, n) => { p.components = [{ type: 'Pin', Number: n + 1, Lane: director.id, Home: [SPOTS[n][0], ly + SPOTS[n][1], SPOTS[n][2]], enabled: true }]; });
   rider.components = [{ type: 'Rider', Ball: ball.id, Lane: director.id, enabled: true }];

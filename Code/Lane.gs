@@ -16,6 +16,8 @@ public sealed partial class Lane : Panel
 
 	[Property] public int Index { get; set; }
 	[Property] public Ball Ball { get; set; }
+	/// <summary>This lane's feed camera (Camera.View( Index ), "view:k" in the scene), shown on the settee's feed board.</summary>
+	[Property, Filter( "linear" )] public Texture FeedView { get; set; } = "view:0";
 
 	[State] public bool Playing;
 	[State] public bool AimMode = true;
@@ -155,7 +157,7 @@ public sealed partial class Lane : Panel
 
 		DownBits = Judge();
 		var ball = Ball.WorldPosition;
-		if ( Round == RoundRolling || Round == RoundWatching ) Touched |= Touching( ball );
+		if ( Round == RoundRolling || Round == RoundWatching ) Touched |= Ball.Hits;
 
 		if ( Round == RoundRolling )
 		{
@@ -452,6 +454,7 @@ public sealed partial class Lane : Panel
 	protected override void OnUpdate()
 	{
 		for ( int p = 0; p < MaxPlayers; p++ ) Totals( p );
+		FeedCamera();
 		// the screen HUD is the local player's, for the lane they have joined (PinStatusOverlay, ScoreBoard)
 		showHud = false;
 		int myLane = -1;
