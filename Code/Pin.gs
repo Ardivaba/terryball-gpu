@@ -124,7 +124,6 @@ public sealed class Pin : GpuComponent
 		else if ( Phase == Racking )
 		{
 			float t = MathX.SmoothStep( 0, 1, MathX.Clamp( (Age - Delay) / RackSeconds, 0, 1 ) );
-			Rigidbody.SetCollisionFilter( Category, 0 );
 			if ( Age >= ReleaseAt )
 			{
 				Phase = Up;
@@ -132,7 +131,12 @@ public sealed class Pin : GpuComponent
 				Place( Home, Rotation.Identity );
 				Rigidbody.SetCollisionFilter( Category, 1u | Category );
 			}
-			else Place( Vector3.Lerp( FromPos, Home, t ), Rotation.Slerp( FromRot, Rotation.Identity, t ) );
+			else
+			{
+				// one filter command per body per tick (commands in one tick are applied in no set order)
+				Rigidbody.SetCollisionFilter( Category, 0 );
+				Place( Vector3.Lerp( FromPos, Home, t ), Rotation.Slerp( FromRot, Rotation.Identity, t ) );
+			}
 			Rigidbody.SetVelocity( Vector3.Zero, Vector3.Zero );
 		}
 	}

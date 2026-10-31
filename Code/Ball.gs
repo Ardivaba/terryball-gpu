@@ -13,7 +13,7 @@ public sealed class Ball : GpuComponent
 	public const float MaxSpeed = 5625, DriveGain = 6.5f, BrakeGain = 20, PitDamping = 6;
 	public const float AngularDamping = 0.1f, HookCoastAngularDamping = 0.005f;
 	// oil and hook
-	public const float OilFrontFraction = 0.6f, HookAccel = 2000, HookSlipDeadband = 40;
+	public const float OilFrontFraction = 0.6f, HookAccel = 900, HookSlipDeadband = 40;
 	// the aimed throw (ThrowAimer)
 	public const float MinLaunchSpeed = 3200, MaxLaunchSpeed = 6200, MaxAimDegrees = 9, LaunchRollFraction = 0.5f, SideRotationRate = 32;
 	public const float SweetSpot = 0.8f, KeySpeed = 0.9f, MouseSpeed = 0.02f;
@@ -51,6 +51,9 @@ public sealed class Ball : GpuComponent
 	[Local] Vector3 camPos;
 	[Local] Rotation camRot;
 	[Local] bool camInit;
+	[Local, Size( 6 )] public float[] Track;   // diagnostics: the ball's y every 3000 units down the lane
+	[Local] public float TrackZ = 1e9f;
+	[Local] float camYaw, camPitchE, camHeight, camFollowY;
 
 	uint Category => 2u << Lane.Index;
 	float LaneY => Lane.WorldPosition.y;
@@ -126,8 +129,9 @@ public sealed class Ball : GpuComponent
 		if ( Mode == Flying )
 		{
 			FlyAge += dt;
-			Rigidbody.SetCollisionFilter( Category, 0 );
+			// one filter command per body per tick: commands in one tick are applied in no set order
 			if ( FlyAge >= FlyDuration ) { PlaceHome(); return; }
+			Rigidbody.SetCollisionFilter( Category, 0 );
 			Rigidbody.SetTransform( FlyPosition( FlyAge ), Rotation.Slerp( WorldRotation, Rotation.Identity, MathF.Min( 1, dt * 3 ) ) );
 			Rigidbody.SetVelocity( Vector3.Zero, Vector3.Zero );
 			return;
@@ -152,6 +156,7 @@ public sealed class Ball : GpuComponent
 
 		// the throw line latches the speed for the HUD; it re-arms behind the foul line
 		var pos = WorldPosition;
+		if ( Launched && Lane.Round == Lane.RoundRolling ) { int k = (int)MathX.Clamp( (pos.x - Alley.FoulX) / 3000, 0, 5 ); Track[k] = pos.y - LaneY; TrackZ = MathF.Min( TrackZ, pos.z ); }
 		if ( ThrowMph == 0 && pos.x >= Alley.ThrowX ) ThrowMph = MathF.Max( Speed * UnitsToMph, 0.06f );
 		if ( pos.x < Alley.FoulX && !Launched ) ThrowMph = 0;
 	}
@@ -197,6 +202,8 @@ public sealed class Ball : GpuComponent
 		Rigidbody.SetVelocity( dir * v, w );
 		Hook = spin;
 		Launched = true;
+		for ( int k = 0; k < 6; k++ ) Track[k] = 0;
+		TrackZ = 1e9f;
 	}
 
 	/// <summary>Inside the solver, every substep: drive, brake, pit damping, the hook, angular damping.</summary>
@@ -269,23 +276,24 @@ public sealed class Ball : GpuComponent
 		Look( Input.LookDelta );
 		var ball = WorldPosition;
 		bool lining = LiningUp;
-		float yaw = lining ? 0 : CamYaw, pitch = lining ? AimPitch : CamPitch, height = lining ? AimHeight : CamHeight;
-		var rot = Rotation.From( pitch, yaw, 0 );
-		var anchor = Mode == Flying ? Home : ball;
-		var play = anchor + Vector3.Up * height - rot.Forward * CamDistance;
+		// the aim view eases in and out (yaw pinned down-lane, higher, pitched down); the anchor itself is exact
+		float ease = 1 - MathF.Exp( -6 * dt );
+		camYaw = MathX.Lerp( camYaw, lining ? 0 : CamYaw, camInit ? ease : 1 );
+		camPitchE = MathX.Lerp( camPitchE, lining ? AimPitch : CamPitch, camInit ? ease : 1 );
+		camHeight = MathX.Lerp( camHeight, lining ? AimHeight : CamHeight, camInit ? ease : 1 );
+		camFollowY = lining ? MathX.Lerp( camFollowY, ball.y, camInit ? MathF.Min( 1, 6 * dt ) : 1 ) : ball.y;
+		camInit = true;
+		var rot = Rotation.From( camPitchE, camYaw, 0 );
+		var anchor = Mode == Flying ? Home : new Vector3( ball.x, camFollowY, ball.z );
+		var play = anchor + Vector3.Up * camHeight - rot.Forward * CamDistance;
 
 		bool watching = Lane.Round == Lane.RoundWatching || Lane.Round == Lane.RoundSettled || Mode == Flying && FlyAge < CraneLiftSeconds + CraneHover;
 		watchBlend = MathX.Lerp( watchBlend, watching ? 1 : 0, MathF.Min( 1, 4 * dt ) );
 		var deck = new Vector3( Alley.DeckCenterX, LaneY, Alley.H );
 		var watchPos = deck + new Vector3( -WatchBack, 0, WatchHeight );
 		var watchRot = Rotation.LookAt( (deck - watchPos).Normal );
-		var pos = Vector3.Lerp( play, watchPos, watchBlend );
-		var look = Rotation.Slerp( rot, watchRot, watchBlend );
-		if ( !camInit ) { camPos = pos; camRot = look; camInit = true; }
-		// ease the aim view in and out rather than snapping
-		float ease = 1 - MathF.Exp( -10 * dt );
-		camPos = Vector3.Lerp( camPos, pos, ease );
-		camRot = Rotation.Slerp( camRot, look, ease );
+		camPos = Vector3.Lerp( play, watchPos, watchBlend );
+		camRot = Rotation.Slerp( rot, watchRot, watchBlend );
 		Camera.Set( camPos, camRot, 70, 10, 60000 );
 	}
 

@@ -212,7 +212,7 @@ for (let li = 0; li < LANE_COUNT; li++) {
   const ly = LANE_Y[li];
   const director = ent({ name: `Lane ${li + 1}`, position: at([0, ly, 0]), rotation: [0, 0, 0, 1] });
   const ball = ent({ name: `Lane ${li + 1} Ball`, position: at([RUNUP[0], ly + RUNUP[1], H + R]), rotation: [0, 0, 0, 1],
-    body: { type: 'dynamic', shape: 'sphere', radius: r6(R * INCH), mass: 5.3, friction: 0.3, restitution: 0.3, gravity_scale: r6(800 / (386.09 * U)),
+    body: { type: 'dynamic', shape: 'sphere', radius: r6(R * INCH), mass: 5.3, friction: 0.05, restitution: 0.3, gravity_scale: r6(800 / (386.09 * U)),
       category: laneCat(li), mask: 1 | laneCat(li) } });
   const pins = SPOTS.map((s, n) => ent({ name: `Lane ${li + 1} Pin ${n + 1}`, position: at([s[0], ly + s[1], s[2]]), rotation: [0, 0, 0, 1],
     mesh: 'pin', material: 'pin',
