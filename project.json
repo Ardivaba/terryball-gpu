@@ -10,7 +10,7 @@
     "scene": "scene.json",
     "components": "Code",
     "physics": {
-      "maxBodies": 1024,
+      "maxBodies": 9216,
       "gravity": [
         0,
         -230.76,
@@ -18,7 +18,10 @@
       ],
       "substeps": 8,
       "sleep": false,
-      "cellSize": 12
+      "cellSize": 12,
+      "maxPairs": 131072,
+      "maxCommands": 32768,
+      "solver": "jacobi"
     },
     "net": {
       "replicate": [
@@ -140,6 +143,7 @@
         "sounds/pins/thud1.wav"
       ]
     },
+    "gpuInstances": 8192,
     "views": [
       {
         "size": [

@@ -6,3 +6,6 @@ obj/
 out/
 *_c
 *.generated.vtex_c
+*.meta
+*.slnx
+*_c

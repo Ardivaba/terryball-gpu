@@ -23,7 +23,7 @@ fs.mkdirSync(out, { recursive: true });
 // the client's script (its own frames, 60 per second): Q, then once the crane has it, LINE AIM POWER SPIN
 const RATE = 0.9 / 60, carets = [0.85, 0.5, 0.85, 0.05], DEFAULT = [0.5, 0.5, 0, 0.5];
 const ev = ['300:81:1', '302:81:0'];
-let f = 850;
+let f = 1000;
 for (let s = 0; s < 4; s++) {
   const delta = carets[s] - DEFAULT[s], n = Math.round(Math.abs(delta) / RATE);
   if (n > 0) { const key = delta > 0 ? 68 : 65; ev.push(`${f}:${key}:1`, `${f + n}:${key}:0`); f += n + 2; }

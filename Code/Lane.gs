@@ -146,6 +146,7 @@ public sealed partial class Lane : Panel
 
 	protected override void OnFixedUpdate()
 	{
+		if ( Singularity.Holds() ) return;   // the key-3 demo effect (Singularity.gs): the lane waits it out
 		float dt = Time.Delta;
 		Clock += dt;
 		RoundAge += dt;
@@ -297,8 +298,13 @@ public sealed partial class Lane : Panel
 		return NextEndTurn;
 	}
 
-	/// <summary>Slot 0 is the host and always present; any other slot is gone when its input is no longer connected.</summary>
-	static bool Present( int slot ) => slot == 0 || Players.Input( slot ).Connected;
+	/// <summary>
+	/// Slot 0 is the host and always present; any other slot is gone once its input has been disconnected for
+	/// LeaveGraceSeconds (a late input packet must not end someone's game).
+	/// </summary>
+	bool Present( int slot ) => slot == 0 || Missing[slot] < LeaveGraceSeconds;
+	public const float LeaveGraceSeconds = 3;
+	[State, Size( 16 )] public float[] Missing;   // seconds each slot's input has been disconnected
 
 	/// <summary>
 	/// Players who left (networking.md's handover and departure): their joins clear; the director role passes to a
@@ -306,6 +312,7 @@ public sealed partial class Lane : Panel
 	/// </summary>
 	void Leavers()
 	{
+		for ( int s = 1; s < 16; s++ ) Missing[s] = Players.Input( s ).Connected ? 0 : Missing[s] + Time.Delta;
 		for ( int s = 1; s < 16; s++ ) if ( (JoinedBits >> s & 1) != 0 && !Present( s ) ) JoinedBits &= ~(1 << s);
 		if ( !Playing ) return;
 		bool anyone = false;
