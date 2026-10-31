@@ -7,6 +7,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { writeEditorScene } from './editor-scene.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const LANE_COUNT = Math.max(1, Math.min(4, +(process.argv[2] || 4)));
@@ -363,3 +364,9 @@ public static class Alley
 }
 `);
 console.log(`terryball: ${LANE_COUNT} lane(s), ${entities.length} entities, ${colliders.length} colliders, meshes ${Object.keys(objs).join(' ')}`);
+
+// the editor's copy (terryball.sbproj -> Assets/scenes/terryball.scene); pins get one hull round the silhouette
+const PROFILE_HULL = [];
+for (const [t, d, n] of [[0, 0.426, 8], [0.15, 0.82, 8], [0.3, 1, 12], [0.9, 0.535, 8], [1, 0.165, 4]])
+  for (let k = 0; k < n; k++) { const a = (k / n) * Math.PI * 2, r = d * PIN_R; PROFILE_HULL.push([r * Math.cos(a), r * Math.sin(a), t * PIN_H]); }
+console.log(writeEditorScene({ root, scene, INCH, r6, PIN_R, PIN_H, PROFILE_HULL }));

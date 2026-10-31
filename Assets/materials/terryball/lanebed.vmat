@@ -1,0 +1,10 @@
+// Terryball (tools/editor-scene.mjs)
+Layer0
+{
+	shader "shaders/complex.shader"
+	g_flModelTintAmount "1.000"
+	g_vColorTint "[1.000000 1.000000 1.000000 0.000000]"
+	TextureColor "materials/terryball/lanewood_color.png"
+	g_flMetalness "0.000"
+	g_flRoughnessScaleFactor "0.200"
+}

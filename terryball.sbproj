@@ -1,0 +1,23 @@
+{
+  "Title": "Terryball",
+  "Type": "game",
+  "Org": "local",
+  "Ident": "terryball",
+  "Schema": 1,
+  "IncludeSourceFiles": false,
+  "Resources": null,
+  "PublishUsedAssetsOnly": true,
+  "PackageReferences": [],
+  "EditorReferences": null,
+  "Mounts": null,
+  "IsStandaloneOnly": false,
+  "AI": {
+    "EnableMcpCommunication": true
+  },
+  "Metadata": {
+    "Runtime": "sgpu",
+    "StartupScene": "scenes/terryball.scene",
+    "TickRate": 60,
+    "MaxPlayers": 16
+  }
+}
