@@ -1,0 +1,21 @@
+{
+  "files.associations": {
+    "*.shader": "slang",
+    "*.hlsl": "slang",
+    "*.gs": "csharp"
+  },
+  "slang.additionalSearchPaths": [
+    "C:\\Users\\Shadow\\Desktop\\workspace\\sbox-public\\game\\core\\shaders",
+    "C:\\Users\\Shadow\\Desktop\\workspace\\sbox-public\\game\\addons\\menu\\Assets\\shaders",
+    "C:\\Users\\Shadow\\Desktop\\workspace\\sbox-public\\game\\addons\\tools\\Assets\\shaders",
+    "C:\\Users\\Shadow\\Desktop\\workspace\\sbox-public\\game\\addons\\sgpu\\Assets\\shaders",
+    "C:\\Users\\Shadow\\Desktop\\workspace\\sbox-public\\game\\editor\\ShaderGraph\\Assets\\shaders",
+    "C:\\Users\\Shadow\\Desktop\\workspace\\sbox-public\\game\\editor\\ActionGraph\\Assets\\shaders",
+    "C:\\Users\\Shadow\\Desktop\\workspace\\sbox-public\\game\\editor\\MovieMaker\\Assets\\shaders",
+    "C:\\Users\\Shadow\\Desktop\\workspace\\sbox-public\\game\\editor\\Hammer\\Assets\\shaders",
+    "C:\\Users\\Shadow\\Desktop\\workspace\\sbox-public\\game\\editor\\DooEditor\\Assets\\shaders",
+    "C:\\Users\\Shadow\\Desktop\\workspace\\sbox-public\\native\\examples\\cube\\Assets\\shaders"
+  ],
+  "slang.predefinedMacros": [],
+  "slang.workspaceFlavor": "vfx"
+}

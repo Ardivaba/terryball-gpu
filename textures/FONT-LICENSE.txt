@@ -1,0 +1,3 @@
+textures/font.png is rendered from Poppins Bold (Copyright 2020 The Poppins Project Authors,
+https://github.com/itfoundry/Poppins), licensed under the SIL Open Font License, Version 1.1:
+https://openfontlicense.org/open-font-license-official-text/

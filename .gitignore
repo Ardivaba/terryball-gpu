@@ -1,0 +1,6 @@
+.sgpu/
+.sbox/
+bin/
+obj/
+*.log
+out/
