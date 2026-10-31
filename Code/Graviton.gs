@@ -158,7 +158,7 @@ public sealed class Graviton : GpuComponent
 			var v = b.Velocity;
 			float speed = v.Length;
 			float lost = lastSpeed[j] - speed;
-			if ( lost > 900 ) hits += MathF.Min( lost / 3000, 1 );
+			if ( lost > 2500 ) hits += MathF.Min( lost / 6000, 1 );   // a real knock, not the disk steering
 			lastSpeed[j] = speed;
 			var q = p - c;
 			float r = q.Length;
@@ -175,7 +175,8 @@ public sealed class Graviton : GpuComponent
 		{
 			var nb = BodyAt( Near );
 			NearAt = nb.Position;
-			NearLoud = MathX.Clamp( nb.Velocity.Length / 7000, 0, 1.5f ) / (1 + best * best / (1400 * 1400));
+			float close = 1 / (1 + best * best / (900 * 900));
+			NearLoud = MathX.Clamp( nb.Velocity.Length / 6000, 0, 1.5f ) * close * close;   // a pass-by: loud only up close
 		}
 		Crackle = MathX.Lerp( Crackle, hits, 0.5f );
 		SpinSum = spin;
@@ -279,9 +280,9 @@ public sealed class Graviton : GpuComponent
 		float f = (150 + 23 * (Index % 11)) * doppler;
 		float tone = MathF.Sin( MathF.Tau * Audio.Oscillator( 0, f ) ) * 0.35f + MathF.Sin( MathF.Tau * Audio.Oscillator( 1, f * 1.51f ) ) * 0.2f;
 		float hiss = Audio.Noise();
-		float whoosh = (tone + hiss * 0.6f) * (0.6f + 0.4f * MathF.Sin( MathF.Tau * Audio.Oscillator( 2, 9 * doppler ) )) * NearLoud * 0.05f;
+		float whoosh = (tone + hiss * 0.15f) * (0.7f + 0.3f * MathF.Sin( MathF.Tau * Audio.Oscillator( 2, 9 * doppler ) )) * NearLoud * 0.22f;
 		float n = Audio.Noise();
-		float crack = MathF.Abs( n ) > 1 - MathX.Clamp( Crackle * 0.004f, 0, 0.03f ) ? n * 0.6f : 0;
+		float crack = MathF.Abs( n ) > 1 - MathX.Clamp( Crackle * 0.0006f, 0, 0.0025f ) ? n * 0.3f : 0;
 		return Audio.At( p, whoosh, 12000 ) + Audio.At( NearAt, crack, 16000 );
 	}
 }

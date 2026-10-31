@@ -348,7 +348,7 @@ public sealed class Singularity : GpuComponent
 			// the release: a white-hot core where the hole was, and a short flash over everything
 			var toHole = (CentreAt( t ) - eye).Normal;
 			float off = MathF.Acos( MathX.Clamp( toHole.Dot( d ), -1, 1 ) );
-			col += Hot( 1.3f ) * (8 * MathF.Exp( -off * off / 0.004f ) * MathF.Exp( -since * 5 ) + 0.12f * MathF.Exp( -since * 20 ));
+			col += Hot( 1.3f ) * (8 * MathF.Exp( -off * off / 0.004f ) * MathF.Exp( -since * 5 ) + 0.04f * MathF.Exp( -since * 20 ));
 		}
 		else if ( since > -0.6f ) col *= 1 - 0.7f * MathX.SmoothStep( -0.6f, 0, since );
 		return new Color( col.x, col.y, col.z, px.Color.a );
@@ -362,11 +362,11 @@ public sealed class Singularity : GpuComponent
 		var c = CentreAt( Age );
 		// the drone: pitched by the disk's real angular speed, as loud as the Well is deep where you stand
 		float deep = MathX.Clamp( -Well( ear, 0 ) / (GM / 2500), 0, 1.5f );
-		float f = 34 + 16 * DiskSpin;
+		float f = 55 + 30 * DiskSpin;
 		float drone = MathF.Sin( MathF.Tau * Audio.Oscillator( 0, f ) ) + 0.5f * MathF.Sin( MathF.Tau * Audio.Oscillator( 1, f * 2.003f ) )
 			+ 0.3f * MathF.Sin( MathF.Tau * Audio.Oscillator( 2, f * 3.01f ) );
 		float m = MassAt( Age );
-		var sound = Audio.At( c, drone * 0.12f * MathF.Min( m, 1.6f ) * (0.5f + 0.5f * deep), 30000 );
+		var sound = Audio.At( c, drone * 0.22f * MathF.Min( m, 1.6f ) * (0.5f + 0.5f * deep), 30000 );
 		// the release: a falling bass hit, and a second one when the shock wave's ridge passes the listener
 		float since = Age - ReleaseAt;
 		if ( since > 0 && since < 6 )
