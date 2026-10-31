@@ -233,8 +233,8 @@ public sealed class Graviton : GpuComponent
 			var radial = flat / rf;
 			float vc = MathF.Sqrt( MathF.Max( -accel.Dot( radial ), 0 ) * rf );
 			// a thick disk: free within its half thickness (150 in + a quarter of the radius), drawn in beyond it
-			float half = 150 + 0.25f * rf, over = MathF.Max( MathF.Abs( height ) - half, 0 ) * MathF.Sign( height );
-			var want = axis.Cross( radial ) * vc + axis * (v.Dot( axis ) * 0.6f - over * 1.6f) - radial * inflow;
+			float half = 90 + 0.1f * rf, over = MathF.Max( MathF.Abs( height ) - half, 0 ) * MathF.Sign( height );
+			var want = axis.Cross( radial ) * vc + axis * (v.Dot( axis ) * 0.3f - over * 2.2f) - radial * inflow;
 			float reach = 1 - MathX.SmoothStep( 4000, 7500, r );
 			accel += (want - v) * (2.4f * grip * reach);
 			// inside the hole's reach the alley's gravity gives way
@@ -255,8 +255,8 @@ public sealed class Graviton : GpuComponent
 		{
 			var b = BodyAt( BodyBase + First + j );
 			float speed = b.Velocity.Length;
-			float near = 1 - MathX.SmoothStep( 300, 2200, (b.Position - c).Length );
-			float hot = MathX.Clamp( (speed - 1800) / 6500 + near * 0.6f, 0, 0.999f );
+			float near = 1 - MathX.SmoothStep( 300, 2400, (b.Position - c).Length );
+			float hot = MathX.Clamp( (speed - 1800) / 6000 + near * 0.55f, 0, 0.999f );
 			Sg.sgsLookPin( (uint)(First + j), heat[(int)(hot * 8)], scale * PinScale );
 		}
 	}

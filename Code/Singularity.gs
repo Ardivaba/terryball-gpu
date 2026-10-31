@@ -21,11 +21,11 @@ public sealed class Singularity : GpuComponent
 	public const float CollapseAt = 9.5f, ReleaseAt = 10.1f, FadeAt = 13.6f, RespotAt = 14.4f, EndAt = 15.6f;
 	// ---------------------------------------------------------------- the hole (s&box units: inches, seconds)
 	public const float GM = 3.0e10f;            // G·M at full mass (in³/s²): orbits at 1500 in take about 2 s
-	public const float C = 15000;               // the alley's speed of light (in/s): r_s = 2GM/c² ≈ 270 in at full mass
+	public const float C = 18000;               // the alley's speed of light (in/s): r_s = 2GM/c² ≈ 270 in at full mass
 	public const float Soft = 140;              // softening of the centre (in)
-	public const float HoverHeight = 1300;      // above the lane top
-	public const float HoverAhead = 5400;       // in front of the camera
-	public const float Tilt = 24;               // the disk's tilt towards the camera (degrees)
+	public const float HoverHeight = 950;      // above the lane top
+	public const float HoverAhead = 6500;       // in front of the camera
+	public const float Tilt = 30;               // the disk's tilt towards the camera (degrees)
 	public const float ShockSpeed = 16000, ShockWidth = 900, ShockPotential = 1.4e8f;
 	public const float SagScale = 52000;        // potential (in²/s²) per inch of the ground's bend
 
@@ -341,9 +341,15 @@ public sealed class Singularity : GpuComponent
 		}
 		// glow round the hot disk, and the release's flash
 		float on = MathX.SmoothStep( 0, 1, Age ) * (1 - MathX.SmoothStep( FadeAt, EndAt, Age ));
-		col += Scene.Color.SampleBlur( px.Uv, 14 ).Rgb * 0.07f * on;
+		col += Scene.Color.SampleBlur( px.Uv, 14 ).Rgb * 0.05f * on;
 		float since = t - ReleaseAt;
-		if ( since > 0 ) col += new Vector3( 4, 3, 2.4f ) * MathF.Exp( -since * 7 );
+		if ( since > 0 )
+		{
+			// the release: a white-hot core where the hole was, and a short flash over everything
+			var toHole = (CentreAt( t ) - eye).Normal;
+			float off = MathF.Acos( MathX.Clamp( toHole.Dot( d ), -1, 1 ) );
+			col += Hot( 1.3f ) * (8 * MathF.Exp( -off * off / 0.004f ) * MathF.Exp( -since * 5 ) + 0.12f * MathF.Exp( -since * 20 ));
+		}
 		else if ( since > -0.6f ) col *= 1 - 0.7f * MathX.SmoothStep( -0.6f, 0, since );
 		return new Color( col.x, col.y, col.z, px.Color.a );
 	}
@@ -360,7 +366,7 @@ public sealed class Singularity : GpuComponent
 		float drone = MathF.Sin( MathF.Tau * Audio.Oscillator( 0, f ) ) + 0.5f * MathF.Sin( MathF.Tau * Audio.Oscillator( 1, f * 2.003f ) )
 			+ 0.3f * MathF.Sin( MathF.Tau * Audio.Oscillator( 2, f * 3.01f ) );
 		float m = MassAt( Age );
-		var sound = Audio.At( c, drone * 0.16f * MathF.Min( m, 1.6f ) * (0.5f + 0.5f * deep), 30000 );
+		var sound = Audio.At( c, drone * 0.12f * MathF.Min( m, 1.6f ) * (0.5f + 0.5f * deep), 30000 );
 		// the release: a falling bass hit, and a second one when the shock wave's ridge passes the listener
 		float since = Age - ReleaseAt;
 		if ( since > 0 && since < 6 )
@@ -368,7 +374,7 @@ public sealed class Singularity : GpuComponent
 			float sweep = 26 + 60 * MathF.Exp( -since * 3 );
 			float boom = MathF.Sin( MathF.Tau * Audio.Oscillator( 3, sweep ) ) * MathF.Exp( -since * 1.3f );
 			float ridge = MathX.Clamp( Well( ear, 0 ) / ShockPotential, 0, 1 );
-			sound += Vector2.One * (boom * (0.75f + 0.6f * ridge) + Audio.Noise() * (MathF.Exp( -since * 9 ) * 0.5f + ridge * 0.25f));
+			sound += Vector2.One * (boom * (0.5f + 0.4f * ridge) + Audio.Noise() * (MathF.Exp( -since * 9 ) * 0.3f + ridge * 0.15f));
 		}
 		return sound;
 	}

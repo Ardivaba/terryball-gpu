@@ -136,7 +136,7 @@ extra.materials = (extra.materials || []).filter((m) => !m.name.startsWith('sg_'
 
 extra.meshes.push({ name: 'sg_pin', obj: 'models/sg_pin.obj' }, { name: 'sg_warp', obj: 'models/sg_warp.obj' });
 // the rain pins' heat: lacquer white, then glowing red, orange, yellow, white hot (emissive, linear)
-const HEAT = [[0, 0, 0], [0.6, 0.05, 0.01], [2, 0.25, 0.03], [5, 1.1, 0.12], [9, 3.2, 0.5], [14, 7, 2], [20, 14, 7], [30, 26, 20]];
+const HEAT = [[0, 0, 0], [0.35, 0.03, 0.005], [1, 0.12, 0.02], [2.2, 0.45, 0.05], [3.6, 1.2, 0.2], [5, 2.4, 0.7], [6.5, 4.5, 2.2], [8, 7, 5.5]];
 HEAT.forEach((e, k) => extra.materials.push({ name: `sg_heat${k}`, color: [0.95, 0.95, 0.95, 1], roughness: 0.3, emissive: e }));
 extra.materials.push({ name: 'sg_warp', color: [1, 1, 1, 1], roughness: 0.5 });
 
