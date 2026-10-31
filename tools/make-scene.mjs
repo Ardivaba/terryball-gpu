@@ -304,6 +304,20 @@ const scene = {
   ],
   entities,
 };
+// scene.extra.json (optional, hand-written): content that isn't generated here (other features' entities, meshes,
+// materials, lights), merged into scene.json on every regeneration. Entities merge by id (an extra entity replaces a
+// generated one with the same id; use ids from 100000 up to stay clear of the generated ones, which count from 1);
+// meshes and materials merge by name; lights are appended.
+const extraPath = path.join(root, 'scene.extra.json');
+if (fs.existsSync(extraPath)) {
+  const extra = JSON.parse(fs.readFileSync(extraPath, 'utf8'));
+  const merge = (list, add, key) => { for (const x of add || []) { const i = list.findIndex((y) => y[key] === x[key]); if (i >= 0) list[i] = x; else list.push(x); } };
+  merge(scene.entities, extra.entities, 'id');
+  merge(scene.meshes, extra.meshes, 'name');
+  merge(scene.materials, extra.materials, 'name');
+  if (extra.lights) scene.lights = [...(scene.lights || []), ...extra.lights];
+  console.log(`scene.extra.json: ${(extra.entities || []).length} entities, ${(extra.meshes || []).length} meshes, ${(extra.materials || []).length} materials, ${(extra.lights || []).length} lights`);
+}
 const line = (x) => JSON.stringify(x);
 const block = (o) => Object.entries(o).map(([k, v]) => `  ${line(k)}: ${Array.isArray(v) ? `[\n${v.map((e) => '    ' + line(e)).join(',\n')}\n  ]` : line(v)}`);
 fs.writeFileSync(path.join(root, 'scene.json'), `{\n${block(scene).join(',\n')}\n}\n`);
