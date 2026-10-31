@@ -133,8 +133,8 @@ public sealed class Pin : GpuComponent
 		float loud = MathX.Clamp( hit / 2600, 0.15f, 1 ) * Ball.Hearing( WorldPosition, 12000 );
 		if ( loud < 0.02f ) return;
 		int n = (Number * 7 + (int)(Age * 37)) % 6;
-		if ( byBall ) Sound.Play2D( Sounds.Thud + Number % 2, loud, 0.95f + 0.01f * Number );
-		else Sound.Play2D( Sounds.Clack + n, loud * 0.8f, 0.92f + 0.016f * Number );
+		if ( byBall ) Sound.Play2D( Sounds.Thud + Number % 2, loud * 0.7f, 0.95f + 0.01f * Number );
+		else Sound.Play2D( Sounds.Clack + n, loud * 0.55f, 0.92f + 0.016f * Number );
 		quietFor = 0.08f;
 	}
 

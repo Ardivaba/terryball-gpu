@@ -19,8 +19,8 @@ fs.mkdirSync(out, { recursive: true });
 
 // the client's script (its own frames, 60 per second): Q, then once the crane has it, LINE AIM POWER SPIN
 const RATE = 0.9 / 60, carets = [0.85, 0.5, 0.85, 0.05], DEFAULT = [0.5, 0.5, 0, 0.5];
-const ev = ['90:81:1', '92:81:0'];
-let f = 640;
+const ev = ['300:81:1', '302:81:0'];
+let f = 850;
 for (let s = 0; s < 4; s++) {
   const delta = carets[s] - DEFAULT[s], n = Math.round(Math.abs(delta) / RATE);
   if (n > 0) { const key = delta > 0 ? 68 : 65; ev.push(`${f}:${key}:1`, `${f + n}:${key}:0`); f += n + 2; }
@@ -28,14 +28,16 @@ for (let s = 0; s < 4; s++) {
   f += 12;
 }
 const frames = seconds * 60;
-const run = (name, extra) => new Promise((resolve) => {
+const run = (name, extra, secs = seconds) => new Promise((resolve) => {
   const log = fs.openSync(path.join(out, `net-${name}.log`), 'w');
-  const p = spawn(exe, [root, '--headless', '--frames', String(frames), '--width', '640', '--height', '360', '--tools', tools,
+  const p = spawn(exe, [root, '--headless', '--frames', String(secs * 60), '--width', '640', '--height', '360', '--tools', tools,
     '--dump-components', path.join(out, `net-${name}.json`), ...extra], { stdio: ['ignore', log, log] });
   p.on('exit', (code) => resolve(code));
 });
-const host = run('host', ['--host', port]);
-await new Promise((r) => setTimeout(r, 2500));
+const host = run('host', ['--host', port], seconds + 6);   // the host outlives the client, so the client's dump is from a live session
+// the client starts once the host is up (its log says so), and a moment more
+for (let i = 0; i < 200 && !fs.readFileSync(path.join(out, 'net-host.log'), 'utf8').includes('hosting on'); i++) await new Promise((r) => setTimeout(r, 100));
+await new Promise((r) => setTimeout(r, 1000));
 const clientArgs = ['--join', `127.0.0.1:${port}`, '--input', ev.join(';'), '--name', 'client'];
 if (shots) { fs.rmSync(shots, { recursive: true, force: true }); fs.mkdirSync(shots, { recursive: true }); clientArgs.push('--screenshots', shots, '0'); }
 const client = run('client', clientArgs);
@@ -47,6 +49,8 @@ for (const side of ['host', 'client']) {
   const rolls = [];
   for (let s = 0; s < 3; s++) rolls.push((lane.Rolls[0] >> (4 * s) & 15) - 1);
   const b1 = comps.find((c) => c.type === 'Bowler' && c.Slot === 1);
+  const ball = comps.find((c) => c.type === 'Ball' && c.Lane === lane.entity);
   console.log(side, JSON.stringify({ exit: codes[side === 'host' ? 0 : 1], lane: lane.Index, playing: lane.Playing, roster: lane.Roster.slice(0, lane.RosterCount),
-    joined: lane.JoinedBits, round: lane.Round, frame: lane.Frame + 1, rolls, call: lane.Call, bowler1: { alive: b1.Alive, joined: b1.Joined, carried: b1.Carried } }));
+    joined: lane.JoinedBits, round: lane.Round, frame: lane.Frame + 1, rolls, call: lane.Call, bowler1: { alive: b1.Alive, joined: b1.Joined, carried: b1.Carried, feet: b1.Feet.map(Math.round) },
+    ball: { mode: ball.Mode, leg: ball.Leg, legs: ball.LegCount, step: ball.Step, launched: ball.Launched, carried: ball.CarriedSlot, mph: +ball.ThrowMph.toFixed(1) } }));
 }
