@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- GPU# IDE project, written by the S&GPU editor -->
+  <!-- For editors only: GPU# (.gs) code against the stub API, for completion and C# errors, and the GPU# analyzer
+       for GPU#'s own rules (the same checks as gsc). The game is built by the GPU# compiler (gsc), not by this
+       project; see native/docs/gsharp.md. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <OutputType>Library</OutputType>
+    <NoWarn>CS0169;CS0414;CS0649</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Code/**/*.gs" />
+    <AdditionalFiles Include="Code/**/*.glsl" />
+    <AdditionalFiles Include="project.json" Condition="Exists('project.json')" />
+    <AdditionalFiles Include="ProjectSettings/Input.config" Condition="Exists('ProjectSettings/Input.config')" />
+    <Using Include="Sandbox" />
+    <Using Include="Sandbox.Gpu" />
+    <Using Include="System" />
+    <Reference Include="GSharp.Api">
+      <HintPath>C:\Users\Shadow\Desktop\workspace\sbox-public\game\bin\gsharp\GSharp.Api.dll</HintPath>
+    </Reference>
+    <Analyzer Include="C:\Users\Shadow\Desktop\workspace\sbox-public\game\bin\gsharp\GSharp.Analyzer.dll" />
+    <Analyzer Include="C:\Users\Shadow\Desktop\workspace\sbox-public\game\bin\gsharp\GSharp.CodeFixes.dll" />
+  </ItemGroup>
+</Project>

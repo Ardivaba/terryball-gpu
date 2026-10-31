@@ -1,0 +1,20 @@
+{
+  "info": {
+    "name": "Terryball",
+    "description": "A bowling alley where Terry rides inside a glass ball down lanes built at 23 times life size. Aim, power and spin the throw, watch the hook bite on the dry back end, and keep a ten-frame card. Gameplay, physics hooks, rendering, the HUD and sound are GPU# components."
+  },
+  "renderpass": [],
+  "sgpu": {
+    "tickRate": 60,
+    "players": 16,
+    "scene": "scene.json",
+    "components": "Code",
+    "physics": { "maxBodies": 1024, "gravity": [0, -230.76, 0], "substeps": 8, "sleep": false, "cellSize": 12 },
+    "net": { "replicate": ["components", "physics"], "rate": 20, "port": 27052 },
+    "web": {
+      "pointerLock": true,
+      "controls": [["A / D, Mouse", "move the aim caret"], ["LMB / Space", "set the step"], ["RMB", "step back"], ["T", "aim / free throw"],
+        ["W A S D", "drive the ball (free throw)"], ["P", "new game"], ["Esc", "free the mouse"]]
+    }
+  }
+}
