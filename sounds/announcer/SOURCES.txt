@@ -1,0 +1,2 @@
+Announcer calls: the source game's own recordings (25 calls, two takes each), with its
+in-game PA-room effect already applied. No third-party material.

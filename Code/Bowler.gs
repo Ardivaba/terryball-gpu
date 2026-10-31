@@ -7,7 +7,7 @@
 /// (Scoop) and sets them down on the settee (Drop); while carried the Terry walking here is hidden and the ball's
 /// rider wears this bowler's colours.
 /// </summary>
-[Title( "Bowler" ), Category( "Terryball" ), Icon( "directions_walk" )]
+[Title( "Bowler" ), Category( "Terryball" ), Icon( "directions_walk" ), RenderOrder( 10 )]
 public sealed class Bowler : Panel
 {
 	public const float WalkSpeed = 170, RunSpeed = 320, Gravity = 800, JumpSpeed = 300, StepHeight = 24, PodiumRange = 128;
@@ -67,7 +67,7 @@ public sealed class Bowler : Panel
 		float dt = Time.Delta;
 		var input = Input;
 		if ( !Networking.IsClient ) Alive = input.Connected || Slot == 0;
-		if ( !Alive ) { GameObject.Visible = false; WorldPosition = Parking; return; }
+		if ( !Alive ) { GameObject.Visible = false; WorldPosition = Parking; Joined = -1; Carried = false; Menu = -1; return; }
 		GameObject.Visible = !Carried;
 		if ( Carried ) { WorldPosition = Parking; return; }
 		if ( !IsLocal ) Look( input.LookDelta );

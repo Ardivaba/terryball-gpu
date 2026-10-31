@@ -6,7 +6,7 @@
 /// lane: Coulomb friction against the contact patch's slip, applied at the contact point, so the same force that
 /// curves the path revs the side spin down. It draws its own glass shell and its coloured shadow in one screen pass.
 /// </summary>
-[Title( "Ball" ), Category( "Terryball" ), Icon( "sports_baseball" )]
+[Title( "Ball" ), Category( "Terryball" ), Icon( "sports_baseball" ), RenderOrder( -10 )]
 public sealed class Ball : GpuComponent
 {
 	// free drive (BallController)
@@ -61,6 +61,10 @@ public sealed class Ball : GpuComponent
 	[Local] Vector3 camPos;
 	[Local] Rotation camRot;
 	[Local] bool camInit;
+	[Local] public float RollSpeed;          // audio: speed from the position change (every machine hears the same roll)
+	[Local] public float RollOn;             // audio: 1 while the ball rolls on the lane, 0 in the air, the pit or the crane
+	[Local] Vector3 heardAt;
+	[Local] bool heardInit;
 	[Local, Size( 6 )] public float[] Track;   // diagnostics: the ball's y every 3000 units down the lane
 	[Local] public float TrackZ = 1e9f;
 	[Local] float camYaw, camPitchE, camHeight, camFollowY;
@@ -352,9 +356,54 @@ public sealed class Ball : GpuComponent
 		CamPitch = MathX.Clamp( CamPitch - d.pitch, MinPitch, MaxPitch );
 	}
 
+	/// <summary>
+	/// The ball's sound, on every machine (BallAudio): the throw one-shot as the ball crosses the foul line (re-armed
+	/// behind it), and the roll's inputs for OnAudio, taken from the position change so a client hears what it sees.
+	/// </summary>
+	void Listen( float dt )
+	{
+		var p = WorldPosition;
+		if ( !heardInit ) { heardAt = p; heardInit = true; }
+		float v = (p - heardAt).WithZ( 0 ).Length / MathF.Max( dt, 1e-4f );
+		bool onLane = Mode == Rolling && MathF.Abs( p.z - (Alley.H + Radius) ) < 30 && p.x > Alley.ApproachX && p.x < Alley.DeckEndX;
+		RollSpeed = MathX.Lerp( RollSpeed, v, 1 - MathF.Exp( -12 * dt ) );
+		RollOn = MathX.Lerp( RollOn, onLane ? 1 : 0, 1 - MathF.Exp( -10 * dt ) );
+		if ( Mode == Rolling && heardAt.x < Alley.FoulX && p.x >= Alley.FoulX && v > 300 )
+		{
+			float near = Hearing( p, 9000 );
+			if ( near > 0.01f ) Sound.Play2D( Sounds.Throw, 0.9f * near, 0.95f + 0.1f * MathX.Fract( p.y * 0.013f ) );
+		}
+		heardAt = p;
+	}
+
+	/// <summary>How loud a sound at p is for this machine's camera: 1 at hand, 0 past range.</summary>
+	public static float Hearing( Vector3 p, float range )
+	{
+		float d = (p - Camera.Main.WorldPosition).Length / range;
+		return MathX.Clamp( 1 - d, 0, 1 ) * MathX.Clamp( 1 - d, 0, 1 );
+	}
+
+	/// <summary>The roll (BallAudio's synthesised rumble): low tones that rise with speed, a once-per-revolution thump, grit.</summary>
+	protected override Vector2 OnAudio( float t )
+	{
+		float on = RollOn;
+		if ( on < 0.001f ) return Vector2.Zero;
+		float s = RollSpeed;
+		float level = MathX.Clamp( s / 5000, 0, 1 );
+		float rev = s / (MathF.Tau * Radius);
+		float thump = MathF.Pow( 0.5f + 0.5f * MathF.Sin( MathF.Tau * Audio.Oscillator( 2, rev ) ), 8 );
+		float rumble = 0.6f * MathF.Sin( MathF.Tau * Audio.Oscillator( 0, 38 + s * 0.006f ) )
+			+ 0.35f * MathF.Sin( MathF.Tau * Audio.Oscillator( 1, 61 + s * 0.009f ) )
+			+ 0.2f * MathF.Sin( MathF.Tau * Audio.Oscillator( 3, 97 + s * 0.013f ) );
+		float grit = Audio.Noise() * (0.05f + 0.08f * level);
+		float mono = (rumble * (0.75f + 0.5f * thump) + grit) * level * on * 0.55f;
+		return Audio.At( WorldPosition, mono, 9000 );
+	}
+
 	/// <summary>The bowler's camera: behind the ball, the aim view while lining up, the pin deck while watching.</summary>
 	protected override void OnUpdate()
 	{
+		Listen( Time.Delta );
 		if ( CarriedSlot != Players.Local || CarriedSlot < 0 ) return;
 		float dt = Time.Delta;
 		Look( Input.LookDelta );

@@ -4,7 +4,7 @@ Where the port stands, how to run it, and what comes next. `PORTING.md` holds th
 
 ## State
 
-Phases 1 and 2 are done.
+Phases 1 and 2 are done; phase 3 (the full alley) is mostly in.
 
 **Phase 2: one playable lane, single player.** Everything below is GPU# in `Code/`:
 - `Lane.gs`: the director. Rounds, watch and settle, judging, booking, scoring, `ClassifyCall`, racking.
@@ -14,6 +14,14 @@ Phases 1 and 2 are done.
 - `Rider.gs`: Terry in the ball.
 - `LaneSurface.gs`: boards, lines and arrows.
 - `Panel.gs`: the HUD kit, with SDF text and display-space blending.
+
+**Phase 3** adds:
+- 4 lanes, settees and the concourse with ramps and podiums.
+- `Bowler.gs`: 16 walking Terrys on the analytic floor `Walk.FloorAt`, a third-person camera, the LANE-podium lobby menu (E; W/S, Space) and Q for a quick game.
+- The crane leg sequencer in `Ball.gs` (Pickup / Return / Drop-off, with crane-off teleports).
+- `LaneDisplays.gs`: the backstop readout, the call over the lane, the settee console, the top-down feed board and podium signs. They are drawn first in the lane's one screen pass, with the HUD over them.
+
+Screen pass order: Ball (glass, `RenderOrder( -10 )`), then Lane (displays + HUD), then Bowler (menu, `RenderOrder( 10 )`).
 
 **Generated files:**
 - `Code/Alley.gs` (landmarks): `tools/make-scene.mjs` writes it, along with `scene.json` and `models/*.obj`.
@@ -46,11 +54,10 @@ To compile only: `../sbox-public/game/bin/gsharp/gsc.exe Code --out out/gs --sho
 
 ## Next (phase 3 onward)
 
-- 4 lanes.
-- The concourse, ramps and podiums.
-- 16 Bowler avatars (a walking Terry on an analytic floor height).
-- The LANE podium's keyboard lobby: JOIN, START, STOP, RESET, throw mode, crane, mode.
-- Crane Pickup and Dropoff.
-- World displays as traced quads: the pin readout over the backstop, the callout over the lane, the settee console.
-- The HUD follows the player's lane.
-- Then: multiplayer tests (`--host` / `--join`), audio, practice drills, polish, the web export.
+- Concourse podium signs and pages (BALL designer, HELP, TELE, SETTINGS).
+- Practice mode and drills.
+- Multiplayer tests (`--host` / `--join`, several bowlers on one lane, leavers).
+- Audio: `OnAudio` roll, pin clacks (`Lane.Touching` is where collision events plug in), the announcer clips.
+- Polish, and the web export.
+
+A scripted walk to lane 3's podium, JOIN and START: `node tools/throw.mjs 0.85 0.5 0.85 0.05 --walk3`.

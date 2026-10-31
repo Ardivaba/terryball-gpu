@@ -9,12 +9,136 @@
     "players": 16,
     "scene": "scene.json",
     "components": "Code",
-    "physics": { "maxBodies": 1024, "gravity": [0, -230.76, 0], "substeps": 8, "sleep": false, "cellSize": 12 },
-    "net": { "replicate": ["components", "physics"], "rate": 20, "port": 27052 },
+    "physics": {
+      "maxBodies": 1024,
+      "gravity": [
+        0,
+        -230.76,
+        0
+      ],
+      "substeps": 8,
+      "sleep": false,
+      "cellSize": 12
+    },
+    "net": {
+      "replicate": [
+        "components",
+        "physics"
+      ],
+      "rate": 20,
+      "port": 27052
+    },
     "web": {
       "pointerLock": true,
-      "controls": [["A / D, Mouse", "move the aim caret"], ["LMB / Space", "set the step"], ["RMB", "step back"], ["T", "aim / free throw"],
-        ["W A S D", "drive the ball (free throw)"], ["P", "new game"], ["Esc", "free the mouse"]]
+      "controls": [
+        [
+          "W / A / S / D",
+          "walk"
+        ],
+        [
+          "Shift",
+          "run"
+        ],
+        [
+          "Mouse",
+          "look"
+        ],
+        [
+          "Q",
+          "quick game"
+        ],
+        [
+          "E",
+          "lane podium (W / S, Space)"
+        ],
+        [
+          "A / D / Mouse",
+          "move the meter marker"
+        ],
+        [
+          "LMB / Space",
+          "commit the stage"
+        ],
+        [
+          "RMB / Backspace",
+          "step back"
+        ],
+        [
+          "T",
+          "free drive (W / A / S / D)"
+        ],
+        [
+          "P",
+          "new game"
+        ],
+        [
+          "Esc",
+          "free the mouse"
+        ]
+      ]
+    },
+    "events": {
+      "sounds": [
+        "sounds/announcer/strike_0.wav",
+        "sounds/announcer/strike_1.wav",
+        "sounds/announcer/spare_0.wav",
+        "sounds/announcer/spare_1.wav",
+        "sounds/announcer/gutter_0.wav",
+        "sounds/announcer/gutter_1.wav",
+        "sounds/announcer/miss_0.wav",
+        "sounds/announcer/miss_1.wav",
+        "sounds/announcer/open-frame_0.wav",
+        "sounds/announcer/open-frame_1.wav",
+        "sounds/announcer/split_0.wav",
+        "sounds/announcer/split_1.wav",
+        "sounds/announcer/pocket_0.wav",
+        "sounds/announcer/pocket_1.wav",
+        "sounds/announcer/double_0.wav",
+        "sounds/announcer/double_1.wav",
+        "sounds/announcer/turkey_0.wav",
+        "sounds/announcer/turkey_1.wav",
+        "sounds/announcer/four-bagger_0.wav",
+        "sounds/announcer/four-bagger_1.wav",
+        "sounds/announcer/five-bagger_0.wav",
+        "sounds/announcer/five-bagger_1.wav",
+        "sounds/announcer/six-pack_0.wav",
+        "sounds/announcer/six-pack_1.wav",
+        "sounds/announcer/perfect-game_0.wav",
+        "sounds/announcer/perfect-game_1.wav",
+        "sounds/announcer/nice_0.wav",
+        "sounds/announcer/nice_1.wav",
+        "sounds/announcer/so-close_0.wav",
+        "sounds/announcer/so-close_1.wav",
+        "sounds/announcer/good-try_0.wav",
+        "sounds/announcer/good-try_1.wav",
+        "sounds/announcer/one_0.wav",
+        "sounds/announcer/one_1.wav",
+        "sounds/announcer/two_0.wav",
+        "sounds/announcer/two_1.wav",
+        "sounds/announcer/three_0.wav",
+        "sounds/announcer/three_1.wav",
+        "sounds/announcer/four_0.wav",
+        "sounds/announcer/four_1.wav",
+        "sounds/announcer/five_0.wav",
+        "sounds/announcer/five_1.wav",
+        "sounds/announcer/six_0.wav",
+        "sounds/announcer/six_1.wav",
+        "sounds/announcer/seven_0.wav",
+        "sounds/announcer/seven_1.wav",
+        "sounds/announcer/eight_0.wav",
+        "sounds/announcer/eight_1.wav",
+        "sounds/announcer/nine_0.wav",
+        "sounds/announcer/nine_1.wav",
+        "sounds/ball/throw0.wav",
+        "sounds/pins/clack0.wav",
+        "sounds/pins/clack1.wav",
+        "sounds/pins/clack2.wav",
+        "sounds/pins/clack3.wav",
+        "sounds/pins/clack4.wav",
+        "sounds/pins/clack5.wav",
+        "sounds/pins/thud0.wav",
+        "sounds/pins/thud1.wav"
+      ]
     }
   }
 }

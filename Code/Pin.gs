@@ -102,14 +102,46 @@ public sealed class Pin : GpuComponent
 		Phase = Racking;
 	}
 
+	[Local] Vector3 lastVelocity;
+	[Local] float quietFor;
 	[Local] public Vector3 Seen;   // where the pin is (diagnostics: --dump-components)
 	[Local] public float SeenUp;
 	[Local] public Vector3 SeenBody;
 	[Local] public Rotation SeenBodyRot;
 
+	/// <summary>
+	/// How hard the pin was just hit (units/s of velocity change this tick, gravity taken out), 0 if not. The source
+	/// counts contact events; this is the one place to swap in collision events.
+	/// </summary>
+	float Impact( float dt )
+	{
+		var v = Rigidbody.Velocity;
+		var dv = v - lastVelocity - new Vector3( 0, 0, -386.09f * Alley.U ) * dt;
+		lastVelocity = v;
+		return dv.Length;
+	}
+
+	/// <summary>Pin sounds (PinImpactAudio): a clack for a pin hit, a thud when the ball is the one hitting it.</summary>
+	void Clatter( float dt )
+	{
+		float hit = Impact( dt );
+		quietFor -= dt;
+		// quiet while racking, for PinRackQuietSeconds after the batch goes live, and between hits of one pin
+		if ( Phase != Up || Age < 0.5f || quietFor > 0 || hit < 350 ) return;
+		var ball = Lane.Ball.WorldPosition;
+		bool byBall = (ball - (WorldPosition + WorldRotation.Up * Alley.PinHeight * 0.4f)).Length < Lane.Ball.Radius + 120;
+		float loud = MathX.Clamp( hit / 2600, 0.15f, 1 ) * Ball.Hearing( WorldPosition, 12000 );
+		if ( loud < 0.02f ) return;
+		int n = (Number * 7 + (int)(Age * 37)) % 6;
+		if ( byBall ) Sound.Play2D( Sounds.Thud + Number % 2, loud, 0.95f + 0.01f * Number );
+		else Sound.Play2D( Sounds.Clack + n, loud * 0.8f, 0.92f + 0.016f * Number );
+		quietFor = 0.08f;
+	}
+
 	protected override void OnFixedUpdate()
 	{
 		Age += Time.Delta;
+		Clatter( Time.Delta );
 		Seen = WorldPosition;
 		SeenUp = WorldRotation.Up.z;
 		SeenBody = Rigidbody.Position;

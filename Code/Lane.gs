@@ -48,6 +48,8 @@ public sealed partial class Lane : Panel
 
 	[Local, Size( MaxPlayers * 10 )] int[] totals;
 	[Local] bool showHud;
+	[Local] int heardCall = -1;
+	[Local] bool heardInit;
 
 	public int BowlerSlot => RosterCount > 0 ? Roster[Current] : 0;
 
@@ -145,6 +147,7 @@ public sealed partial class Lane : Panel
 		float dt = Time.Delta;
 		Clock += dt;
 		RoundAge += dt;
+		Leavers();
 		if ( !Playing ) return;
 		var input = Players.Input( BowlerSlot );
 		if ( Players.Input( Director ).KeyPressed( Keys.P ) ) { StartGame(); return; }
@@ -292,6 +295,30 @@ public sealed partial class Lane : Panel
 		return NextEndTurn;
 	}
 
+	/// <summary>Slot 0 is the host and always present; any other slot is gone when its input is no longer connected.</summary>
+	static bool Present( int slot ) => slot == 0 || Players.Input( slot ).Connected;
+
+	/// <summary>
+	/// Players who left (networking.md's handover and departure): their joins clear; the director role passes to a
+	/// bowler still here; a departed active bowler's turn ends with what is booked; a roster with nobody left ends.
+	/// </summary>
+	void Leavers()
+	{
+		for ( int s = 1; s < 16; s++ ) if ( (JoinedBits >> s & 1) != 0 && !Present( s ) ) JoinedBits &= ~(1 << s);
+		if ( !Playing ) return;
+		bool anyone = false;
+		for ( int p = 0; p < RosterCount; p++ ) if ( Present( Roster[p] ) ) anyone = true;
+		if ( !anyone ) { Director = Roster[0]; Halt( Director ); return; }
+		if ( !Present( Director ) ) for ( int p = RosterCount - 1; p >= 0; p-- ) if ( Present( Roster[p] ) ) Director = Roster[p];
+		if ( Present( BowlerSlot ) || GameOver ) return;
+		// the bowler is gone mid-turn: they leave the ball, and the next bowler is up
+		if ( Ball.CarriedSlot == BowlerSlot || Ball.CraneSlot == BowlerSlot ) Ball.Release( Seat( Current ) );
+		Next = NextEndTurn;
+		Rack( false );
+		Swept = 0;
+		Proceed();
+	}
+
 	void Proceed()
 	{
 		if ( Next == NextLeave )
@@ -427,7 +454,15 @@ public sealed partial class Lane : Panel
 		for ( int p = 0; p < MaxPlayers; p++ ) Totals( p );
 		// the screen HUD is the local player's, for the lane they have joined (PinStatusOverlay, ScoreBoard)
 		showHud = false;
-		foreach ( var b in Scene.All<Bowler>() ) if ( b.Slot == Players.Local ) showHud = b.Joined == Index;
+		int myLane = -1;
+		foreach ( var b in Scene.All<Bowler>() ) if ( b.Slot == Players.Local ) { showHud = b.Joined == Index; myLane = b.HudLane; }
+		// the announcer: each new call once, on the machines whose player is at this lane (AnnouncerAudio), alternating takes
+		if ( !heardInit ) { heardCall = CallSerial; heardInit = true; }
+		if ( CallSerial != heardCall )
+		{
+			heardCall = CallSerial;
+			if ( Call >= 0 && Call < Label.Calls && (myLane == Index || showHud) ) Sound.Play2D( Sounds.Announcer + Call * 2 + (CallSerial & 1), 1, 1 );
+		}
 	}
 
 	void Totals( int p )

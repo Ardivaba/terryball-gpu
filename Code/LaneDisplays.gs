@@ -24,13 +24,14 @@ public sealed partial class Lane
 		return true;
 	}
 
-	[Draw( After = Stage.Lighting )]
-	Color Displays( in ScreenPixel px )
+	/// <summary>The world displays over display colour d (see Lane.Screen); the lane's own ball hides what is behind it.</summary>
+	Vector3 Displays( in ScreenPixel px, Vector3 d )
 	{
 		float ly = WorldPosition.y;
-		var d = ToDisplay( px.Color.Rgb );
-		var start = d;
+		if ( MathF.Abs( Render.CameraPosition.y - ly ) > 9000 ) return d;
 		Vector2 q;
+		var shell = Intersect.Sphere( Render.CameraPosition, px.ViewDir, Ball.WorldPosition, Ball.Radius );
+		if ( shell.Hit && shell.Near > 0 && shell.Near < px.Depth ) return d;
 		var back = new Vector3( -1, 0, 0 );   // facing up-lane, toward the bowler
 		var front = new Vector3( 1, 0, 0 );   // facing the settee
 		// the readout: 1726.8 x 2343.5 units over the backstop, laid out 1000 px wide
@@ -56,9 +57,7 @@ public sealed partial class Lane
 			if ( PanelAt( px, new Vector3( Alley.PodiumX, ly - 142.4f + k * 142.4f, Alley.SetteeFloor + 66 ), front, Vector3.Up, new Vector2( 36, 11.57f ), 300 / 72f, out q ) )
 				d = Sign( q, d, k == 0 ? Label.Lane : k == 1 ? Label.BallSign : Label.Help, k == 0 ? Css( 90, 160, 230 ) : k == 1 ? Css( 220, 70, 80 ) : Css( 150, 155, 170 ) );
 		}
-		if ( (d - start).Length < 1e-6f ) return px.Color;
-		var o = FromDisplay( d );
-		return new Color( o.x, o.y, o.z, 1 );
+		return d;
 	}
 
 	static Vector3 Bg => new Vector3( 0.07f, 0.08f, 0.1f );

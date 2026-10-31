@@ -12,17 +12,25 @@ public sealed partial class Lane
 
 	bool ShowsHud => showHud;
 
+	/// <summary>The lane's one screen pass: its world displays, then (for the local player's lane) the HUD over them.</summary>
 	[Draw( After = Stage.Lighting )]
-	Color Hud( in ScreenPixel px )
+	Color Screen( in ScreenPixel px )
 	{
-		if ( !ShowsHud ) return px.Color;
+		var d0 = ToDisplay( px.Color.Rgb );
+		var shown = Displays( px, d0 );
+		if ( !ShowsHud )
+		{
+			if ( (shown - d0).Length < 1e-6f ) return px.Color;
+			var w = FromDisplay( shown );
+			return new Color( w.x, w.y, w.z, 1 );
+		}
 		var res = px.Pixel / new Vector2( MathF.Max( px.Uv.x, 1e-5f ), MathF.Max( px.Uv.y, 1e-5f ) );
 		float scale = res.y / 1080;
 		// layout space: 1080 tall, y down from the top
 		var q = new Vector2( px.Pixel.x, res.y - px.Pixel.y ) / scale;
 		float W = res.x / scale;
-		var d = ToDisplay( px.Color.Rgb );
-		var start = d;
+		var d = shown;
+		var start = d0;
 		d = PinCard( q, d );
 		d = Scoreboard( q - new Vector2( W - 24 - 648, 24 ), d );
 		if ( Ball.LiningUp || Ball.Launched && Round == RoundRolling && AimMode ) d = AimMeter( q - new Vector2( W / 2 - 230, 1080 - 48 ), d );
