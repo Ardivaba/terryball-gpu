@@ -4,7 +4,7 @@ Where the port stands, how to run it, and what comes next. `PORTING.md` holds th
 
 ## State
 
-Phases 1 and 2 are done; phase 3 (the full alley) is mostly in.
+Phases 1-3 are done. Phases 4-6 are partly done: multiplayer is tested host + client, audio is in, the editor scene opens, and a local web build runs. Still to do is listed under Next.
 
 **Phase 2: one playable lane, single player.** Everything below is GPU# in `Code/`:
 - `Lane.gs`: the director. Rounds, watch and settle, judging, booking, scoring, `ClassifyCall`, racking.
@@ -54,11 +54,34 @@ To compile only: `../sbox-public/game/bin/gsharp/gsc.exe Code --out out/gs --sho
 9. Pin sounds and the pocket come from `OnCollisionStart` (`Pin`, `Ball.Hits`). Each lane's settee feed board samples its own `Camera.View( Index )` as a `"view:k"` texture (`project.json` `sgpu.views`); the HUD, displays and menu skip themselves while `Render.InView`.
 10. The web export (`native/tools/web/export.mjs --game .`) must write OUTSIDE the project folder, or it copies its own output into itself until the disk is full.
 
-## Next (phase 3 onward)
+## Done since phase 3
 
-- Concourse podium signs and pages (BALL designer, HELP, TELE, SETTINGS).
-- Practice mode and drills.
-- Multiplayer tests (`--host` / `--join`, several bowlers on one lane, leavers).
-- Polish, and the web export.
+- **Engine 1bddafd74:**
+  - pin sounds and the pocket come from `OnCollisionStart`
+  - each lane's settee feed board shows its `Camera.View( Index )`, live
+  - `SetTransform` takes the GameObject transform
+- **Audio:** the `OnAudio` roll, the throw one-shot, pin clacks and thuds, the announcer (`tools/make-sounds.mjs` writes the sound list).
+- **Multiplayer:** host + client on localhost (`tools/net-test.mjs --port 27152`; use a private port, 27052 is shared with other agents' runs).
+  - Leavers: joins clear, the director passes on, a missing player's turn ends after a 10 s grace.
+  - On a host, `Players.Input( s ).Connected` has been seen reading false for over 3 s while the client was connected. Reported to the engine side.
+- **Editor:** `terryball.sbproj` + `Assets/scenes/terryball.scene`, written by `tools/editor-scene.mjs` from make-scene. `scene.extra.json` holds other features' entities: the Pin Singularity demo, key 3, not ours.
+- **Web:** `node ../sbox-public/native/tools/web/export.mjs --game <copy> --out <dir OUTSIDE the project> --compile`. It was last exported from a private snapshot (`../tb-snap`, `../tb-web`) and runs in the browser at about 70 fps (`native/tools/web/run.mjs`). Never deploy without the user.
 
-A scripted walk to lane 3's podium, JOIN and START: `node tools/throw.mjs 0.85 0.5 0.85 0.05 --walk3`.
+## Known issues
+
+- `project.json` uses `"solver": "jacobi"` for the Singularity demo. With it, the pocket-strike line carries 9 pins, against 10/10 with the graph solver. An engine fix to the graph solver's scaling is in progress; when it lands, remove the solver key and re-run `node tools/throw.mjs 0.85 0.5 0.85 0.05` (expect 10).
+- Editor Play gives pins one convex hull, and fog and exposure use the exporter's defaults.
+
+## Next
+
+- **Practice mode and drills** (`docs/game.md` "Practice mode"):
+  - Mode PLAY/PRACTICE and Drill rows in the lobby menu (`Bowler.MenuPanel`, `Bowler.Rows`).
+  - The queue as the roster.
+  - `RackLeave` from the source's `PracticeLeaves` lists: spares {10},{7},{2,4,5,8},{3,6,9,10},{1,2,4},{1,3,6},{5,6},{2,3,5}; splits {7,10},{4,6},{4,7,10},{5,7},{3,10},{2,7},{4,6,7,10},{6,7}.
+- **Concourse podiums** (BALL, HELP, TELE, SETTINGS, MORE): signs like the lane podium signs, plus pages drawn by `Bowler`:
+  - BALL: the ball designer. Patterns HalfHalf / Polkadot / Cubes / Galaxy, two hues, `[State]` per player; `Ball.Design` draws the shell.
+  - HELP: how to play.
+  - TELE: teleport to Lane n.
+  - SETTINGS: sky brightness and theme.
+- **Music:** a reduced skafinity in `OnAudio` (optional).
+- **Tests:** a 16-player test, and two bowlers sharing a lane (turn rotation, drop-off between turns).
