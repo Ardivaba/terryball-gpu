@@ -19,6 +19,10 @@ public sealed partial class Lane : Panel
 
 	[State] public bool Playing;
 	[State] public bool AimMode = true;
+	[State] public bool CraneEnabled = true;
+	[State] public int JoinedBits;        // player slots joined to this lane (bit n = slot n)
+	[State] public int Director = -1;     // the slot that started the game: STOP and RESET are theirs
+	[State] public bool PendingTurn;      // the crane is setting the last bowler down; the next turn starts once it parks
 	[State] public int Round;
 	[State] public float RoundAge;
 	[State] public float Clock;
@@ -43,21 +47,66 @@ public sealed partial class Lane : Panel
 	[State] public uint Rng;
 
 	[Local, Size( MaxPlayers * 10 )] int[] totals;
+	[Local] bool showHud;
 
 	public int BowlerSlot => RosterCount > 0 ? Roster[Current] : 0;
 
 	protected override void OnStart()
 	{
 		Rng = 2463534242u + (uint)Index * 7919u;
-		StartGame();
+		Playing = false;
+		Rack( true );
+		Ball.PlaceHome();
+	}
+
+	// ---------------------------------------------------------------- the lobby (LaneControls), from the bowlers
+	[Message] public void Join( int slot ) { if ( !Playing ) JoinedBits |= 1 << slot; }
+	[Message] public void Leave( int slot ) { if ( !Playing ) JoinedBits &= ~(1 << slot); }
+	bool MayDirect( int slot ) => !Playing || slot == Director;
+	[Message] public void ToggleAim( int slot ) { if ( MayDirect( slot ) && !Ball.Launched ) AimMode = !AimMode; }
+	[Message] public void ToggleCrane( int slot ) { if ( MayDirect( slot ) ) CraneEnabled = !CraneEnabled; }
+	[Message] public void Begin( int slot ) { if ( !Playing && JoinedBits != 0 ) { Director = slot; StartGame(); } }
+	[Message] public void Restart( int slot ) { if ( Playing && slot == Director ) StartGame(); }
+
+	/// <summary>STOP: the cards clear, the rider is set down, the pins re-rack, the lane returns to its lobby.</summary>
+	[Message]
+	public void Halt( int slot )
+	{
+		if ( !Playing || slot != Director ) return;
+		Playing = false;
+		GameOver = false;
+		Director = -1;
+		Call = -1;
+		Rack( true );
+		Ball.Release( Seat( 0 ) );
+		SetRound( RoundRolling );
+	}
+
+	/// <summary>Where roster bowler k sits on the settee.</summary>
+	public Vector3 Seat( int k ) => new Vector3( Alley.SetteeCentreX + 60 - (k % 3) * 60, WorldPosition.y + (k < 3 ? -200 : 200), Alley.SetteeFloor );
+
+	/// <summary>A turn begins: the crane fetches the bowler (or, already riding, flies them back to the run-up).</summary>
+	void BeginTurn()
+	{
+		Touched = 0;
+		int slot = BowlerSlot;
+		if ( Ball.CarriedSlot == slot ) Ball.FlyHome( CraneEnabled );
+		else
+		{
+			var foot = Seat( Current );
+			foreach ( var b in Scene.All<Bowler>() ) if ( b.Slot == slot ) foot = b.Feet;
+			Ball.Pickup( slot, foot, CraneEnabled );
+		}
+		SetRound( RoundReturning );
 	}
 
 	// ---------------------------------------------------------------- the game
 	void StartGame()
 	{
 		Playing = true;
-		RosterCount = 1;
-		Roster[0] = 0;
+		RosterCount = 0;
+		for ( int s = 0; s < 16; s++ )
+			if ( (JoinedBits >> s & 1) != 0 && RosterCount < MaxPlayers ) { Roster[RosterCount] = s; RosterCount++; }
 		for ( int i = 0; i < MaxPlayers * 3; i++ ) Rolls[i] = 0;
 		for ( int i = 0; i < MaxPlayers; i++ ) SplitBits[i] = 0;
 		Current = 0;
@@ -68,9 +117,9 @@ public sealed partial class Lane : Panel
 		StartDown = 0;
 		Touched = 0;
 		Call = -1;
+		PendingTurn = false;
 		Rack( true );
-		Ball.PlaceHome();
-		SetRound( RoundRolling );
+		BeginTurn();
 	}
 
 	void SetRound( int r )
@@ -98,8 +147,8 @@ public sealed partial class Lane : Panel
 		RoundAge += dt;
 		if ( !Playing ) return;
 		var input = Players.Input( BowlerSlot );
-		if ( input.KeyPressed( Keys.P ) ) { StartGame(); return; }
-		if ( input.KeyPressed( Keys.T ) && Round == RoundRolling && !Ball.Launched ) { AimMode = !AimMode; Ball.PlaceHome(); }
+		if ( Players.Input( Director ).KeyPressed( Keys.P ) ) { StartGame(); return; }
+		if ( Ball.CarriedSlot == BowlerSlot && input.KeyPressed( Keys.T ) && Round == RoundRolling && !Ball.Launched ) { AimMode = !AimMode; Ball.PlaceHome(); }
 
 		DownBits = Judge();
 		var ball = Ball.WorldPosition;
@@ -132,7 +181,8 @@ public sealed partial class Lane : Panel
 			bool racked = true;
 			foreach ( var pin in Scene.All<Pin>() )
 				if ( pin.Lane.Index == Index && pin.Phase == Pin.Racking ) racked = false;
-			if ( Ball.Mode == Ball.Rolling && racked && RoundAge > 0.2f ) SetRound( GameOver ? RoundOver : RoundRolling );
+			if ( PendingTurn && Ball.Mode == Ball.Parked ) { PendingTurn = false; if ( GameOver ) SetRound( RoundOver ); else BeginTurn(); }
+			else if ( !PendingTurn && Ball.Mode == Ball.Rolling && racked && RoundAge > 0.2f ) SetRound( RoundRolling );
 		}
 	}
 
@@ -258,15 +308,21 @@ public sealed partial class Lane : Panel
 		}
 		else
 		{
+			int was = Current;
 			Current++;
 			if ( Current >= RosterCount ) { Current = 0; Frame++; }
 			BallNo = 0;
 			StartDown = 0;
-			if ( Frame >= 10 ) { GameOver = true; Frame = 9; }
+			if ( Frame >= 10 ) { GameOver = true; Frame = 9; Current = was; }
 			else Rack( false );
+			Touched = 0;
+			// one bowler stays in the ball between frames; otherwise (and at the end) the crane sets them down
+			if ( RosterCount > 1 || GameOver ) { Ball.Dropoff( Seat( was ), CraneEnabled ); PendingTurn = true; SetRound( RoundReturning ); }
+			else BeginTurn();
+			return;
 		}
 		Touched = 0;
-		Ball.FlyHome();
+		Ball.FlyHome( CraneEnabled );
 		SetRound( RoundReturning );
 	}
 
@@ -369,6 +425,9 @@ public sealed partial class Lane : Panel
 	protected override void OnUpdate()
 	{
 		for ( int p = 0; p < MaxPlayers; p++ ) Totals( p );
+		// the screen HUD is the local player's, for the lane they have joined (PinStatusOverlay, ScoreBoard)
+		showHud = false;
+		foreach ( var b in Scene.All<Bowler>() ) if ( b.Slot == Players.Local ) showHud = b.Joined == Index;
 	}
 
 	void Totals( int p )

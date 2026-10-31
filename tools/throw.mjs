@@ -17,11 +17,11 @@ const shots = opt('--shots', 2);
 const size = (opt('--size') || '960x540').split('x');
 const gap = +(opt('--gap') || 600);
 const extra = opt('--then');
-const start = +(opt('--start') || 40);
+const start = +(opt('--start') || 480);   // Q (a quick game) is pressed at frame 5; the crane then fetches the bowler
 const throws = args.join(' ').split(',').map((t) => t.trim().split(/\s+/).map(Number)).filter((t) => t.length === 4);
 
 const DEFAULT = [0.5, 0.5, 0, 0.5], RATE = 0.9 / 60;
-const ev = [];
+const ev = ['5:81:1', '7:81:0'];
 let f = start;
 for (const carets of throws) {
   for (let s = 0; s < 4; s++) {
@@ -42,9 +42,9 @@ if (shots) { fs.rmSync(shots[0], { recursive: true, force: true }); fs.mkdirSync
 const log = execFileSync(path.join(sbox, 'game', 'bin', 'win64', 'sgpu-player.exe'), cmd, { encoding: 'utf8', maxBuffer: 1 << 26 });
 fs.writeFileSync(path.join(root, 'out', 'throw.log'), log);
 const comps = JSON.parse(fs.readFileSync(dump, 'utf8'));
-const lane = comps.find((c) => c.type === 'Lane');
-const ball = comps.find((c) => c.type === 'Ball');
+const lane = comps.find((c) => c.type === 'Lane' && c.Playing) || comps.find((c) => c.type === 'Lane');
+const ball = comps.find((c) => c.type === 'Ball' && c.Lane === lane.entity);
 const rolls = [];
 for (let s = 0; s < 21; s++) { const v = (lane.Rolls[Math.floor(s / 8)] >> (4 * (s % 8)) & 15) - 1; rolls.push(v); }
 const down = []; for (let n = 1; n <= 10; n++) if (lane.DownBits >> n & 1) down.push(n);
-console.log(JSON.stringify({ frames: total, round: lane.Round, frame: lane.Frame + 1, ball: lane.BallNo, call: lane.Call, rolls: rolls.join(' '), down: down.join(','), mph: +ball.ThrowMph.toFixed(2), track: ball.Track.map((y) => Math.round(y)).join(' '), lowZ: Math.round(ball.TrackZ) }));
+console.log(JSON.stringify({ lane: lane.Index, frames: total, round: lane.Round, frame: lane.Frame + 1, ball: lane.BallNo, call: lane.Call, rolls: rolls.join(' '), down: down.join(','), mph: +ball.ThrowMph.toFixed(2), track: ball.Track.map((y) => Math.round(y)).join(' '), lowZ: Math.round(ball.TrackZ) }));

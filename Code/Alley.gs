@@ -7,6 +7,7 @@ public static class Alley
 	public const float LaneHalf = 488.235294f;
 	public const float GutterOut = 705.882353f;
 	public const float PlatformHalf = 917.647059f;
+	public const int Lanes = 4;
 	public const float ApproachX = 1824.204641f;
 	public const float FoulX = 6059.498758f;
 	public const float ThrowX = 21588.910523f;
@@ -19,5 +20,18 @@ public static class Alley
 	public const float RunUpX = 2883.02817f;
 	public const float PinHeight = 352.941176f;
 	public const float RowDepth = 244.52482f;
+	public const float ConcourseX0 = 27266.234983f;
+	public const float ConcourseX1 = 29666.234983f;
+	public const float ConcourseHalf = 5984.8f;
+	public const float ConcourseZ = 8f;
+	public const float RampHalf = 341.76f;
+	public const float SetteeHalf = 284.8f;
+	public const float SetteeFloor = 662.823529f;
+	public const float SetteeCentreX = 24894.359983f;
+	public const float PodiumX = 25011.23f;               // the LANE / BALL / HELP podiums (lane-local y -142.4, 0, 142.4)
+	public const float RampX0 = 150f;
+	public const float BarrierTop = 305.882353f;
+	public const float GutterFloor = 117.647059f;
+	public const float BarrierOut = 847.058824f;
 	public static readonly float[] LaneY = { -4500f, -1500f, 1500f, 4500f };
 }

@@ -62,7 +62,26 @@ public static class Label
 	public const int Practice = 58;   // PRACTICE MODE
 	public const int Lane = 59;   // LANE
 	public const int Terryball = 60;   // TERRYBALL
-	public const int Count = 61;
+	public const int OpenLane = 61;   // LANE
+	public const int QuickGame = 62;   // quick game
+	public const int Join = 63;   // JOIN
+	public const int Leave = 64;   // LEAVE
+	public const int ThrowMode = 65;   // THROW
+	public const int Crane = 66;   // BALL CRANE
+	public const int Start = 67;   // START
+	public const int Stop = 68;   // STOP
+	public const int Reset = 69;   // RESET
+	public const int Free = 70;   // FREE
+	public const int On = 71;   // ON
+	public const int Off = 72;   // OFF
+	public const int InPlay = 73;   // IN PLAY
+	public const int Lobby = 74;   // LOBBY
+	public const int Joined = 75;   // JOINED
+	public const int MenuHint = 76;   // W/S pick, Space choose, E close
+	public const int BallSign = 77;   // BALL
+	public const int Help = 78;   // HELP
+	public const int FeedTitle = 79;   // LANE FEED
+	public const int Count = 80;
 	public const int Calls = 25;
 	public static readonly int[] Words = {
 		1230132307, 2180427, 0, 0, 0, 0, 0, 0, 
@@ -125,6 +144,25 @@ public static class Label
 		1801677172, 540876915, 1701148531, 1886593140, 28265, 0, 0, 0, 
 		1128354384, 1162037588, 1146047776, 69, 0, 0, 0, 0, 
 		1162756428, 0, 0, 0, 0, 0, 0, 0, 
-		1381123412, 1279345241, 76, 0, 0, 0, 0, 0
+		1381123412, 1279345241, 76, 0, 0, 0, 0, 0, 
+		1162756428, 0, 0, 0, 0, 0, 0, 0, 
+		1667855729, 1634148459, 25965, 0, 0, 0, 0, 0, 
+		1313427274, 0, 0, 0, 0, 0, 0, 0, 
+		1447118156, 69, 0, 0, 0, 0, 0, 0, 
+		1330792532, 87, 0, 0, 0, 0, 0, 0, 
+		1280065858, 1095910176, 17742, 0, 0, 0, 0, 0, 
+		1380013139, 84, 0, 0, 0, 0, 0, 0, 
+		1347376211, 0, 0, 0, 0, 0, 0, 0, 
+		1163085138, 84, 0, 0, 0, 0, 0, 0, 
+		1162170950, 0, 0, 0, 0, 0, 0, 0, 
+		20047, 0, 0, 0, 0, 0, 0, 0, 
+		4605519, 0, 0, 0, 0, 0, 0, 0, 
+		1344294473, 5849420, 0, 0, 0, 0, 0, 0, 
+		1111641932, 89, 0, 0, 0, 0, 0, 0, 
+		1313427274, 17477, 0, 0, 0, 0, 0, 0, 
+		542322519, 1801677168, 1884495916, 543515489, 1869572195, 539780467, 1818435653, 6648687, 
+		1280065858, 0, 0, 0, 0, 0, 0, 0, 
+		1347175752, 0, 0, 0, 0, 0, 0, 0, 
+		1162756428, 1162167840, 68, 0, 0, 0, 0, 0
 	};
 }

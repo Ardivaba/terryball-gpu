@@ -22,7 +22,9 @@ const LABELS = [
   ['ThrowAim', 'AIM throw'], ['ThrowFree', 'FREE throw'], ['KeyT', 'T'], ['KeyP', 'P'], ['KeyWasd', 'WASD'], ['KeyMouse', 'Mouse'],
   ['HintDrive', 'drive the ball'], ['HintLook', 'look'], ['HintThrowMode', 'aim / free throw'], ['HintReset', 'new game'],
   ['SweetPower', 'tick = sweet spot'], ['SweetSpin', 'ticks = sweet spin'], ['Practice', 'PRACTICE MODE'], ['Lane', 'LANE'],
-  ['Terryball', 'TERRYBALL'],
+  ['Terryball', 'TERRYBALL'], ['OpenLane', 'LANE'], ['QuickGame', 'quick game'], ['Join', 'JOIN'], ['Leave', 'LEAVE'],
+  ['ThrowMode', 'THROW'], ['Crane', 'BALL CRANE'], ['Start', 'START'], ['Stop', 'STOP'], ['Reset', 'RESET'], ['Free', 'FREE'], ['On', 'ON'],
+  ['Off', 'OFF'], ['InPlay', 'IN PLAY'], ['Lobby', 'LOBBY'], ['Joined', 'JOINED'], ['MenuHint', 'W/S pick, Space choose, E close'], ['BallSign', 'BALL'], ['Help', 'HELP'], ['FeedTitle', 'LANE FEED'],
 ];
 const words = [];
 for (const [, text] of LABELS) {

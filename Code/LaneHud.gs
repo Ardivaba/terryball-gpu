@@ -10,7 +10,7 @@ public sealed partial class Lane
 	static readonly int[] RowStart = { 0, 4, 7, 9 };
 	static readonly int[] RowLen = { 4, 3, 2, 1 };
 
-	bool ShowsHud => Playing && Index == 0;
+	bool ShowsHud => showHud;
 
 	[Draw( After = Stage.Lighting )]
 	Color Hud( in ScreenPixel px )

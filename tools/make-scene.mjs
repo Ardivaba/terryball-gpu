@@ -9,7 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const LANE_COUNT = Math.max(1, Math.min(4, +(process.argv[2] || 1)));
+const LANE_COUNT = Math.max(1, Math.min(4, +(process.argv[2] || 4)));
 const INCH = 0.0254;
 const r6 = (x) => +x.toFixed(6);
 const toInt = (p) => [-p[1], p[2], -p[0]].map((x) => r6(x * INCH));
@@ -116,8 +116,48 @@ function lane(ly) {
   // settee carpet
   const sx = PIT_END_X + 343.75 / 2;
   B('carpet', PIT_END_X, BACKBOARD_X, -284.8, 284.8, SETTEE_Z, SETTEE_Z + 4, 200, { solid: false });
+  const fz = SETTEE_Z + 4;   // the carpet top: the settee floor
+  // two benches along the settee's sides (frame, cushion, back), facing the lane's middle
+  for (const s of [-1, 1]) {
+    const y = s * 271.6;
+    B('metal', sx - 123.75, sx + 123.75, y - 11, y + 11, fz, fz + 15, 30, { solid: false });
+    B(paint([0.55, 0.13, 0.16]), sx - 123.75, sx + 123.75, y - 11, y + 11, fz + 15, fz + 18, 30, { solid: false });
+    B('metal', sx - 123.75, sx + 123.75, s * 281.6 - 1, s * 281.6 + 1, fz + 18, fz + 36, 30, { solid: false });
+  }
+  // the LANE / BALL / HELP podiums at the back of the settee
+  [[-142.4, [0.05, 0.06, 0.08]], [0, [0.55, 0.13, 0.16]], [142.4, [0.18, 0.19, 0.22]]].forEach(([y, top]) => {
+    B('metal', 25011.23 - 9, 25011.23 + 9, y - 22, y + 22, fz, fz + 40, 30, { solid: false });
+    B(paint(top), 25011.23 - 10, 25011.23 + 10, y - 23, y + 23, fz + 40, fz + 42, 30, { solid: false });
+  });
+  // the two overhead screens' bezels and posts (the score console and the feed board), at the deck's lane edge
+  for (const y of [-136.8, 136.8]) {
+    B(paint([0.05, 0.06, 0.08]), 24727.23 - 1.25, 24727.23 + 1.25, y - 122, y + 122, 782.82 - 69.5, 782.82 + 69.5, 30, { solid: false });
+    for (const py of [y - 117, y + 117]) B(paint([0.22, 0.23, 0.26]), 24725.98 - 1.5, 24725.98 + 1.5, py - 1.5, py + 1.5, SETTEE_Z, 713.32, 30, { solid: false });
+  }
+  // the backstop readout's bezel, high over the pit
+  B(paint([0.05, 0.06, 0.08]), 24732.48 - 10, 24732.48 + 10, -887.4, 887.4, 2570.59 - 1195.77, 2570.59 + 1195.77, 30, { solid: false });
 }
+// untextured painted materials, one per colour
+const paints = new Map();
+function paint(c) { const k = 'paint_' + c.map((x) => Math.round(x * 100)).join('_'); paints.set(k, c); return k; }
 for (let i = 0; i < LANE_COUNT; i++) lane(LANE_Y[i]);
+// the concourse behind all settees (SpawnAreaBuilder): a carpeted floor, one ramp up to each settee, five podiums
+const CONC_X0 = BACKBOARD_X + 2200, CONC_X1 = CONC_X0 + 2400, CONC_HALF = 4500 + 917.65 + 567.15;
+box('concourse', [(CONC_X0 + CONC_X1) / 2, 0, 4], [CONC_X1 - CONC_X0, CONC_HALF * 2, 8], 160);
+solid([(CONC_X0 + CONC_X1) / 2, 0, 4], [CONC_X1 - CONC_X0, CONC_HALF * 2, 8]);
+const RAMP_DEG2 = Math.atan2(SETTEE_Z, CONC_X0 - BACKBOARD_X) * 180 / Math.PI;
+for (let i = 0; i < LANE_COUNT; i++) {
+  const len = Math.hypot(CONC_X0 - BACKBOARD_X, SETTEE_Z), rad = RAMP_DEG2 * Math.PI / 180, t = 60;
+  const c = [(CONC_X0 + BACKBOARD_X) / 2 + Math.sin(rad) * t / 2, LANE_Y[i], SETTEE_Z / 2 - Math.cos(rad) * t / 2];
+  box('ramp', c, [len + 2, 683.52, t], 200, pitchQuat(RAMP_DEG2));
+  solid(c, [len + 2, 683.52, t], { rot: pitchQuat(RAMP_DEG2) });
+}
+export const PODIUMS = [['BALL', 28274.23, -150, [0.45, 0.32, 0.6]], ['HELP', 28274.23, 150, [0.3, 0.52, 0.4]], ['TELE', 27824.23, 0, [0.28, 0.55, 0.62]],
+  ['SETTINGS', 27824.23, 390, [0.55, 0.45, 0.15]], ['MORE', 27824.23, -390, [0.55, 0.45, 0.15]]];
+for (const [, x, y, top] of PODIUMS) {
+  box(paint([0.16, 0.17, 0.22]), [x, y, 28], [18, 44, 40], 30);
+  box(paint(top), [x, y, 49], [20, 46, 2], 30);
+}
 // the floor under everything (FloorBuilder: 102400 square, top at z = 0); only its top is drawn
 box('floor', [12000, 0, -128], [102400, 102400, 256], 200, [0, 0, 0, 1], 'Z');
 solid([12000, 0, -128], [102400, 102400, 256]);
@@ -225,14 +265,23 @@ for (let li = 0; li < LANE_COUNT; li++) {
   rider.components = [{ type: 'Rider', Ball: ball.id, Lane: director.id, enabled: true }];
 }
 
+// sixteen bowlers, one per player slot (Code/Bowler.gs), spawned round the concourse spawn point facing the lanes;
+// a slot nobody holds is parked out of sight
+for (let slot = 0; slot < 16; slot++) {
+  const a = slot * 2.4, r = 40 + 14 * slot;
+  ent({ name: `Bowler ${slot + 1}`, position: at([28274.23 - 200 + Math.cos(a) * r, Math.sin(a) * r, 8]), rotation: [0, 0, 0, 1],
+    mesh: 'citizen', castShadows: true, animation: { clip: 'citizen/idle', speed: 1, loop: true, time: 0 },
+    components: [{ type: 'Bowler', Slot: slot, enabled: true }] });
+}
+
 const scene = {
   schema: 1,
   camera: { position: at([RUNUP[0] - 700, LANE_Y[0], H + R + 160]), target: at([HEAD_X, LANE_Y[0], H]), fov: 70, near: 0.25, far: 0 },
   environment: {
-    sky_top: [0.16, 0.3, 0.52], sky_horizon: [0.5, 0.62, 0.7], sky_ground: [0.2, 0.2, 0.22],
+    sky_top: [0.09, 0.23, 0.55], sky_horizon: [0.42, 0.58, 0.74], sky_ground: [0.33, 0.46, 0.52],
     sun: { direction: dirInt([0.005, 0.706, -0.708]), color: [0.944, 0.978, 1.0], intensity: 3.2, size: 0.6, shadows: true },
     ambient: [0.253 * 1.4, 0.32 * 1.4, 0.353 * 1.4],
-    fog: { color: [0.42, 0.52, 0.6], density: 0.0012, start: 120, heightFalloff: 0 },
+    fog: { color: [0.45, 0.6, 0.74], density: 0.00035, start: 300, heightFalloff: 0 },
     shadows: { distance: 260, bias: 0.08, normalBias: 0.06, softness: 1, strength: 1 },
     exposure: 1,
   },
@@ -245,6 +294,9 @@ const scene = {
     { name: 'carpet', color: [1, 1, 1, 1], texture: 'textures/floordark_color.png', roughness: 0.9 },
     { name: 'floor', color: [1, 1, 1, 1], texture: 'textures/floor_color.png', roughness: 0.55 },
     { name: 'pin', color: [0.95, 0.95, 0.95, 1], roughness: 0.3 },
+    { name: 'concourse', color: [0.14 * 1.4, 0.15 * 1.4, 0.2 * 1.4, 1], texture: 'textures/carpet_color.png', roughness: 0.9 },
+    { name: 'ramp', color: [0.2 * 2.5, 0.22 * 2.5, 0.28 * 2.5, 1], texture: 'textures/floordark_color.png', roughness: 0.8 },
+    ...[...paints].map(([name, c]) => ({ name, color: [...c, 1], roughness: 0.55 })),
   ],
   meshes: [
     ...Object.keys(objs).map((name) => ({ name, obj: `models/${name}.obj` })),
@@ -267,6 +319,7 @@ public static class Alley
 	public const float LaneHalf = ${f(LANE_HALF)};
 	public const float GutterOut = ${f(GUTTER_OUT)};
 	public const float PlatformHalf = ${f(PLATFORM_HALF)};
+	public const int Lanes = ${LANE_COUNT};
 	public const float ApproachX = ${f(APPROACH_X)};
 	public const float FoulX = ${f(FOUL_X)};
 	public const float ThrowX = ${f(THROW_X)};
@@ -279,6 +332,19 @@ public static class Alley
 	public const float RunUpX = ${f(RUNUP[0])};
 	public const float PinHeight = ${f(PIN_H)};
 	public const float RowDepth = ${f(ROW)};
+	public const float ConcourseX0 = ${f(CONC_X0)};
+	public const float ConcourseX1 = ${f(CONC_X1)};
+	public const float ConcourseHalf = ${f(CONC_HALF)};
+	public const float ConcourseZ = 8f;
+	public const float RampHalf = 341.76f;
+	public const float SetteeHalf = 284.8f;
+	public const float SetteeFloor = ${f(SETTEE_Z + 4)};
+	public const float SetteeCentreX = ${f(PIT_END_X + 343.75 / 2)};
+	public const float PodiumX = 25011.23f;               // the LANE / BALL / HELP podiums (lane-local y -142.4, 0, 142.4)
+	public const float RampX0 = ${f(RAMP_X0)};
+	public const float BarrierTop = ${f(BARRIER_TOP)};
+	public const float GutterFloor = ${f(H - GUTTER_D)};
+	public const float BarrierOut = ${f(BARRIER_OUT)};
 	public static readonly float[] LaneY = { ${LANE_Y.map(f).join(', ')} };
 }
 `);

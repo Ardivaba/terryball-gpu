@@ -24,7 +24,10 @@ public sealed class Ball : GpuComponent
 	// crane flights
 	public const float CraneSpeed = 12700, CraneMinTravel = 0.45f, CraneLift = 500, CraneLiftSeconds = 0.5f, CraneHover = 0.4f, CraneArc = 260;
 
-	public const int Rolling = 0, Flying = 1;
+	public const int Rolling = 0, Flying = 1, Parked = 2;
+	// crane legs
+	public const int LegMove = 0, LegArc = 1, LegWait = 2, LegScoop = 3, LegDrop = 4, LegHome = 5, LegPark = 6;
+	public const float CraneAbove = 230, CraneAboveSeconds = 0.55f, CraneSink = 0.6f, Pelvis = 38;
 	public const int StepLine = 0, StepAim = 1, StepPower = 2, StepSpin = 3, StepThrown = 4;
 
 	[Property] public Lane Lane { get; set; }
@@ -43,8 +46,15 @@ public sealed class Ball : GpuComponent
 	[State] public float CamYaw;  // free drive is relative to the bowler's camera
 	[State] public float CamPitch;
 	// a crane flight (the director's Return): lift, hover, arc to the run-up
-	[State] public Vector3 FlyFrom, FlyTo;
-	[State] public float FlyAge, FlyTravel;
+	[State] public int CarriedSlot = -1;     // the bowler riding inside (-1: nobody)
+	[State] public int CraneSlot = -1;       // the bowler the crane is fetching or setting down
+	[State, Size( 10 )] public Vector3[] LegTo;
+	[State, Size( 10 )] public float[] LegTime;
+	[State, Size( 10 )] public int[] LegKind;
+	[State] public int LegCount, Leg;
+	[State] public float LegAge;
+	[State] public Vector3 LegFrom;
+	[State] public bool Lifting;             // the first lift of a Return or Drop-off: the camera keeps watching
 
 	[Local] float watchBlend;
 	[Local] float flyCam;
@@ -64,7 +74,7 @@ public sealed class Ball : GpuComponent
 	PlayerInput Input => Players.Input( Bowler );
 	public Vector3 Home => new Vector3( Alley.RunUpX, LaneY, Alley.H + Radius );
 	/// <summary>Lining up an aimed throw: held at the foul line, the meter up.</summary>
-	public bool LiningUp => Mode == Rolling && Lane.AimMode && Lane.Round == Lane.RoundRolling && Step < StepThrown && Lane.Playing && !Lane.GameOver;
+	public bool LiningUp => Mode == Rolling && CarriedSlot >= 0 && Lane.AimMode && Lane.Round == Lane.RoundRolling && Step < StepThrown && Lane.Playing && !Lane.GameOver;
 	public float Speed => Rigidbody.Velocity.Length;
 
 	protected override void OnStart()
@@ -96,28 +106,111 @@ public sealed class Ball : GpuComponent
 		HoldAt = Home;
 	}
 
-	/// <summary>The crane's Return: lift, hover, then an arc back to the run-up (the ball is out of physics meanwhile).</summary>
+	// ---------------------------------------------------------------- the crane (GameDirector's crane jobs)
+	void Legs() { LegCount = 0; Leg = 0; LegAge = 0; LegFrom = WorldPosition; Mode = Flying; }
+	void Add( int kind, Vector3 to, float time ) { LegKind[LegCount] = kind; LegTo[LegCount] = to; LegTime[LegCount] = time; LegCount++; }
+	float Travel( Vector3 a, Vector3 b ) => MathF.Max( CraneMinTravel, a.Distance( b ) / CraneSpeed );
+	static Vector3 Rest( Vector3 foot ) => foot + Vector3.Up * Pelvis;
+
+	/// <summary>Return: lift, hover, an arc back to the run-up, roll.</summary>
 	[Message]
-	public void FlyHome()
+	public void FlyHome( bool crane )
 	{
-		Mode = Flying;
-		FlyFrom = WorldPosition;
-		FlyTo = Home;
-		FlyAge = 0;
-		var top = FlyFrom + Vector3.Up * CraneLift;
-		FlyTravel = MathF.Max( CraneMinTravel, top.Distance( FlyTo ) / CraneSpeed );
+		Legs();
+		var top = WorldPosition + Vector3.Up * CraneLift;
+		if ( crane ) { Add( LegMove, top, CraneLiftSeconds ); Add( LegWait, top, CraneHover ); Add( LegArc, Home, Travel( top, Home ) ); }
+		Add( LegHome, Home, 0 );
+		Lifting = crane;
 	}
 
-	public float FlyDuration => CraneLiftSeconds + CraneHover + FlyTravel;
-
-	Vector3 FlyPosition( float age )
+	/// <summary>Pickup: fly over the bowler, sink, scoop them in, rise, fly to the run-up, roll.</summary>
+	[Message]
+	public void Pickup( int slot, Vector3 foot, bool crane )
 	{
-		var top = FlyFrom + Vector3.Up * CraneLift;
-		if ( age < CraneLiftSeconds ) return Vector3.Lerp( FlyFrom, top, MathX.SmoothStep( 0, 1, age / CraneLiftSeconds ) );
-		if ( age < CraneLiftSeconds + CraneHover ) return top;
-		float t = MathX.Clamp( (age - CraneLiftSeconds - CraneHover) / FlyTravel, 0, 1 );
+		Legs();
+		CraneSlot = slot;
+		var rest = Rest( foot ); var above = rest + Vector3.Up * CraneAbove;
+		if ( crane )
+		{
+			var from = WorldPosition;
+			Add( LegArc, above, Travel( from, above ) ); Add( LegWait, above, CraneAboveSeconds ); Add( LegMove, rest, CraneSink );
+			Add( LegScoop, rest, 0 ); Add( LegMove, above, CraneSink ); Add( LegWait, above, CraneAboveSeconds );
+			Add( LegArc, Home, Travel( above, Home ) );
+		}
+		else Add( LegScoop, rest, 0 );
+		Add( LegHome, Home, 0 );
+		Lifting = false;
+	}
+
+	/// <summary>Drop-off: lift, hover, fly over the seat, sink, set the bowler down, rise, and wait there.</summary>
+	[Message]
+	public void Dropoff( Vector3 seat, bool crane )
+	{
+		Legs();
+		CraneSlot = CarriedSlot;
+		var rest = Rest( seat ); var above = rest + Vector3.Up * CraneAbove;
+		if ( crane )
+		{
+			var top = WorldPosition + Vector3.Up * CraneLift;
+			Add( LegMove, top, CraneLiftSeconds ); Add( LegWait, top, CraneHover ); Add( LegArc, above, Travel( top, above ) );
+			Add( LegWait, above, CraneAboveSeconds ); Add( LegMove, rest, CraneSink ); Add( LegDrop, seat, 0 );
+			Add( LegMove, above, CraneSink ); Add( LegWait, above, CraneAboveSeconds );
+		}
+		else Add( LegDrop, seat, 0 );
+		Add( LegPark, above, 0 );
+		Lifting = crane;
+	}
+
+	/// <summary>Out of the game at once (STOP): the rider is set down on the seat, the ball goes home.</summary>
+	[Message]
+	public void Release( Vector3 seat )
+	{
+		if ( CarriedSlot >= 0 ) foreach ( var b in Scene.All<Bowler>() ) if ( b.Slot == CarriedSlot ) b.Drop( seat );
+		CarriedSlot = -1;
+		CraneSlot = -1;
+		PlaceHome();
+	}
+
+	Vector3 LegPosition()
+	{
+		int k = LegKind[Leg];
+		var to = LegTo[Leg];
+		float t = LegTime[Leg] > 0 ? MathX.Clamp( LegAge / LegTime[Leg], 0, 1 ) : 1;
 		float e = MathX.SmoothStep( 0, 1, t );
-		return Vector3.Lerp( top, FlyTo, e ) + Vector3.Up * CraneArc * MathF.Sin( e * MathF.PI );
+		if ( k == LegArc ) return Vector3.Lerp( LegFrom, to, e ) + Vector3.Up * CraneArc * MathF.Sin( e * MathF.PI );
+		if ( k == LegMove ) return Vector3.Lerp( LegFrom, to, e );
+		return LegFrom;
+	}
+
+	void Crane( float dt )
+	{
+		LegAge += dt;
+		// legs that take no time run their event and end at once
+		for ( int guard = 0; guard < 10 && Leg < LegCount; guard++ )
+		{
+			int k = LegKind[Leg];
+			if ( k == LegScoop )
+			{
+				foreach ( var b in Scene.All<Bowler>() ) if ( b.Slot == CraneSlot ) b.Scoop();
+				CarriedSlot = CraneSlot;
+			}
+			else if ( k == LegDrop )
+			{
+				foreach ( var b in Scene.All<Bowler>() ) if ( b.Slot == CraneSlot ) b.Drop( LegTo[Leg] );
+				CarriedSlot = -1;
+			}
+			else if ( k == LegHome ) { CraneSlot = -1; PlaceHome(); return; }
+			else if ( k == LegPark ) { Mode = Parked; LegFrom = LegTo[Leg]; Leg = LegCount; break; }
+			else if ( LegAge < LegTime[Leg] ) break;
+			if ( k == LegMove || k == LegArc ) LegFrom = LegTo[Leg];
+			if ( Leg == 0 ) Lifting = false;
+			LegAge = 0;
+			Leg++;
+		}
+		// one filter command per body per tick: commands in one tick are applied in no set order
+		Rigidbody.SetCollisionFilter( Category, 0 );
+		Rigidbody.SetTransform( Leg < LegCount ? LegPosition() : LegFrom, Rotation.Slerp( WorldRotation, Rotation.Identity, MathF.Min( 1, dt * 3 ) ) );
+		Rigidbody.SetVelocity( Vector3.Zero, Vector3.Zero );
 	}
 
 	protected override void OnFixedUpdate()
@@ -126,16 +219,7 @@ public sealed class Ball : GpuComponent
 		var input = Input;
 		if ( !IsLocal ) Look( input.LookDelta );
 
-		if ( Mode == Flying )
-		{
-			FlyAge += dt;
-			// one filter command per body per tick: commands in one tick are applied in no set order
-			if ( FlyAge >= FlyDuration ) { PlaceHome(); return; }
-			Rigidbody.SetCollisionFilter( Category, 0 );
-			Rigidbody.SetTransform( FlyPosition( FlyAge ), Rotation.Slerp( WorldRotation, Rotation.Identity, MathF.Min( 1, dt * 3 ) ) );
-			Rigidbody.SetVelocity( Vector3.Zero, Vector3.Zero );
-			return;
-		}
+		if ( Mode == Flying || Mode == Parked ) { Crane( dt ); return; }
 
 		bool canPlay = Lane.Playing && !Lane.GameOver && Lane.Round == Lane.RoundRolling;
 		Locked = !canPlay || Launched || Lane.AimMode;
@@ -271,7 +355,7 @@ public sealed class Ball : GpuComponent
 	/// <summary>The bowler's camera: behind the ball, the aim view while lining up, the pin deck while watching.</summary>
 	protected override void OnUpdate()
 	{
-		if ( !IsLocal || !Lane.Playing ) return;
+		if ( CarriedSlot != Players.Local || CarriedSlot < 0 ) return;
 		float dt = Time.Delta;
 		Look( Input.LookDelta );
 		var ball = WorldPosition;
@@ -284,10 +368,10 @@ public sealed class Ball : GpuComponent
 		camFollowY = lining ? MathX.Lerp( camFollowY, ball.y, camInit ? MathF.Min( 1, 6 * dt ) : 1 ) : ball.y;
 		camInit = true;
 		var rot = Rotation.From( camPitchE, camYaw, 0 );
-		var anchor = Mode == Flying ? Home : new Vector3( ball.x, camFollowY, ball.z );
+		var anchor = new Vector3( ball.x, camFollowY, ball.z );
 		var play = anchor + Vector3.Up * camHeight - rot.Forward * CamDistance;
 
-		bool watching = Lane.Round == Lane.RoundWatching || Lane.Round == Lane.RoundSettled || Mode == Flying && FlyAge < CraneLiftSeconds + CraneHover;
+		bool watching = Lane.Round == Lane.RoundWatching || Lane.Round == Lane.RoundSettled || Mode == Flying && Lifting;
 		watchBlend = MathX.Lerp( watchBlend, watching ? 1 : 0, MathF.Min( 1, 4 * dt ) );
 		var deck = new Vector3( Alley.DeckCenterX, LaneY, Alley.H );
 		var watchPos = deck + new Vector3( -WatchBack, 0, WatchHeight );

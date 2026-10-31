@@ -40,7 +40,7 @@ public sealed class Rider : GpuComponent
 		WorldPosition = c - rot.Up * Pelvis * Scale;
 
 		var model = Model;
-		model.Visible = Lane.Playing;
+		model.Visible = Ball.CarriedSlot >= 0;
 		float ramp = MathX.Clamp( speed / RollSpeed, 0, 1 );
 		float walkT = MathX.Clamp( (ramp - WalkRampStart) / (1 - WalkRampStart), 0, 1 );
 		if ( rolling ) model.Play( "jump_loop", 1, true, 0.3f );
@@ -57,31 +57,39 @@ public sealed class Rider : GpuComponent
 		return o;
 	}
 
-	/// <summary>Terry's bowling outfit: a teal shirt, dark slacks, bowling shoes.</summary>
 	[Draw]
-	Color Skin( in Surface s )
+	Color Skin( in Surface s ) => Lighting.Standard( Terry.Dress( s, s.Uv.y, s.Uv.x, Ball.CarriedSlot ) );
+}
+
+/// <summary>The citizen mesh's parts and each bowler's outfit: a two-tone bowling shirt in the slot's colour, dark slacks, bowling shoes.</summary>
+public static class Terry
+{
+	/// <summary>Which part of the mesh a vertex belongs to (its primitive in citizen.glb).</summary>
+	public static float Part( uint vertex ) =>
+		vertex < 780 ? 0 : vertex < 2502 ? 1 : vertex < 3045 ? 2 : vertex < 3893 ? 3 : vertex < 6829 ? 4 : 5;
+
+	/// <summary>A slot's shirt colour: hues spread round the wheel by the golden angle.</summary>
+	public static Vector3 Shirt( int slot )
 	{
-		int k = (int)(s.Uv.y + 0.5f);
-		float h = s.Uv.x;
-		var shirt = new Vector3( 0.05f, 0.42f, 0.45f );
-		var slacks = new Vector3( 0.06f, 0.06f, 0.08f );
+		float h = MathX.Fract( 0.48f + slot * 0.381966f ) * 6;
+		var c = new Vector3( MathX.Clamp( MathF.Abs( h - 3 ) - 1, 0, 1 ), MathX.Clamp( 2 - MathF.Abs( h - 2 ), 0, 1 ), MathX.Clamp( 2 - MathF.Abs( h - 4 ), 0, 1 ) );
+		return Vector3.Lerp( Vector3.One, c, 0.85f ) * 0.55f;
+	}
+
+	/// <summary>Terry dressed as a bowler; height in inches above his feet (unscaled).</summary>
+	public static Surface Dress( in Surface s, float part, float height, int slot )
+	{
+		int k = (int)(part + 0.5f);
 		var skin = new Vector3( 0.8f, 0.56f, 0.42f );
 		if ( k == 0 || k == 2 )
 		{
-			// the shirt's two-tone panel and the slacks below the belt
-			bool top = h > 38;
-			var cloth = top ? Vector3.Lerp( shirt, new Vector3( 0.9f, 0.88f, 0.8f ), MathX.SmoothStep( 49, 50, h ) * (1 - MathX.SmoothStep( 53, 54, h )) ) : slacks;
-			return Lighting.Standard( s with { Albedo = cloth, Roughness = 0.8f, Metalness = 0 } );
+			var shirt = Shirt( slot < 0 ? 0 : slot );
+			var panel = MathX.SmoothStep( 49, 50, height ) * (1 - MathX.SmoothStep( 53, 54, height ));
+			var cloth = height > 38 ? Vector3.Lerp( shirt, new Vector3( 0.9f, 0.88f, 0.8f ), panel ) : new Vector3( 0.06f, 0.06f, 0.08f );
+			return s with { Albedo = cloth, Roughness = 0.8f, Metalness = 0 };
 		}
-		if ( k == 3 ) return Lighting.Standard( s with { Albedo = Vector3.Lerp( new Vector3( 0.55f, 0.08f, 0.06f ), new Vector3( 0.85f, 0.82f, 0.75f ), MathX.SmoothStep( 2.5f, 3, h ) ), Roughness = 0.45f, Metalness = 0 } );
-		if ( k == 5 ) return Lighting.Standard( s with { Albedo = new Vector3( 0.02f, 0.02f, 0.025f ), Roughness = 0.08f, Metalness = 0 } );
-		return Lighting.Standard( s with { Albedo = skin, Roughness = 0.6f, Metalness = 0 } );
+		if ( k == 3 ) return s with { Albedo = Vector3.Lerp( new Vector3( 0.55f, 0.08f, 0.06f ), new Vector3( 0.85f, 0.82f, 0.75f ), MathX.SmoothStep( 2.5f, 3, height ) ), Roughness = 0.45f, Metalness = 0 };
+		if ( k == 5 ) return s with { Albedo = new Vector3( 0.02f, 0.02f, 0.025f ), Roughness = 0.08f, Metalness = 0 };
+		return s with { Albedo = skin, Roughness = 0.6f, Metalness = 0 };
 	}
-}
-
-/// <summary>Which part of the citizen mesh a vertex is (its primitive in citizen.glb).</summary>
-public static class Terry
-{
-	public static float Part( uint vertex ) =>
-		vertex < 780 ? 0 : vertex < 2502 ? 1 : vertex < 3045 ? 2 : vertex < 3893 ? 3 : vertex < 6829 ? 4 : 5;
 }
